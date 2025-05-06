@@ -59,7 +59,6 @@ func GetInitCommand() *cli.Command {
 
 			reader := bufio.NewReader(os.Stdin)
 
-			// --- Task 1.2: Implement Interactive Prompts for Metadata ---
 			var packageName, version, license, description string
 			var err error
 
@@ -111,13 +110,13 @@ func GetInitCommand() *cli.Command {
 					break // Exit loop if script name is empty
 				}
 
-				scriptCommand, err := promptWithDefault(reader, fmt.Sprintf("Command for script '%s'", scriptName), "")
+				scriptCmd, err := promptWithDefault(reader, fmt.Sprintf("Command for script '%s'", scriptName), "")
 				if err != nil {
 					return cli.Exit(fmt.Sprintf("Error reading command for script '%s': %v", scriptName, err), 1)
 				}
 
-				// TODO: Consider adding validation for script names and commands (e.g., no empty command?)
-				scripts[scriptName] = scriptCommand
+				// Add or overwrite script
+				scripts[scriptName] = scriptCmd
 			}
 
 			// Add default 'run' script if not provided by the user
@@ -159,18 +158,6 @@ func GetInitCommand() *cli.Command {
 				dependencies[depName] = depSource
 			}
 
-			// For now, just print the collected dependencies
-			fmt.Println("\n--- Collected Dependencies (Placeholders) ---")
-			if len(dependencies) > 0 {
-				for name, source := range dependencies {
-					fmt.Printf("%s = \"%s\"\n", name, source)
-				}
-			} else {
-				fmt.Println("(No dependencies defined)")
-			}
-			fmt.Println("-------------------------------------------")
-
-			// --- Task 1.5: Write project.toml ---
 			config := ProjectConfig{
 				Package: PackageMeta{
 					Name:        packageName,
@@ -198,7 +185,7 @@ func GetInitCommand() *cli.Command {
 				return cli.Exit(fmt.Sprintf("Error writing to project.toml: %v", err), 1)
 			}
 
-			fmt.Println("\nSuccessfully created project.toml!") // Confirmation message
+			fmt.Println("\nWrote to project.toml")
 
 			return nil
 		},

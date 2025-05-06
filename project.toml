@@ -4,4 +4,4 @@
 	license = "MIT"
 
 [scripts]
-	run = "go run main.go"
+	run = "lua src/main.lua"
