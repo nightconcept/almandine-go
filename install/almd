@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Almandine CLI wrapper script
-# Finds a suitable Lua interpreter and runs ~/.almd/src/main.lua with all arguments.
+# Executes almd-cli with all arguments.
 # Compatible with macOS and Linux.
 
 # Deferred self-update logic (POSIX)
@@ -18,62 +18,29 @@ if [ -f "$UPDATE_PENDING" ] && [ -d "$NEXT_DIR" ]; then
   cp "$NEXT_DIR/src/install/almd.ps1" "$SCRIPT_DIR/" 2>/dev/null || true
   rm -rf "$NEXT_DIR" "$UPDATE_PENDING"
   # Print update success and new version
-  LUA_BIN=""
-  find_lua_version() {
-    for cmd in lua lua5.4 lua5.3 lua5.2 lua5.1 luajit; do
-      if command -v "$cmd" >/dev/null 2>&1; then
-        LUA_BIN="$cmd"
-        break
-      fi
-    done
-    if [ -n "$LUA_BIN" ]; then
-      VERSION=$($LUA_BIN -e "local ok,v=pcall(require,'almd_version'); print(ok and v and v.VERSION or _VERSION)" 2>/dev/null)
-      if [ -n "$VERSION" ]; then
-        echo "Almandine CLI updated successfully! New version: $VERSION"
-      else
-        echo "Almandine CLI updated successfully! (version unknown)"
-      fi
+  CLI_BIN="$SCRIPT_DIR/almd-cli"
+  if [ -x "$CLI_BIN" ]; then
+    VERSION=$("$CLI_BIN" --version 2>/dev/null)
+    if [ -n "$VERSION" ]; then
+      echo "Almandine CLI updated successfully! New version: $VERSION"
     else
-      echo "Almandine CLI updated successfully! (Lua not found to check version)"
+      echo "Almandine CLI updated successfully! (version unknown)"
     fi
-  }
-  find_lua_version
+  else
+    echo "Almandine CLI updated successfully! (almd-cli not found to check version)"
+  fi
 fi
 
-find_lua() {
-  for cmd in lua lua5.4 lua5.3 lua5.2 lua5.1 luajit; do
-    if command -v "$cmd" >/dev/null 2>&1; then
-      echo "$cmd"
-      return 0
-    fi
-  done
-  return 1
-}
+# Determine the location of the main executable
+SCRIPT_DIR="$(dirname "$0")"
+CLI_BIN="$SCRIPT_DIR/almd-cli"
 
-LUA_BIN=$(find_lua)
-if [ -z "$LUA_BIN" ]; then
-  echo "Error: No suitable Lua interpreter found (lua, lua5.4, lua5.3, lua5.2, lua5.1, or luajit required)." >&2
+if [ ! -x "$CLI_BIN" ]; then
+  echo "Error: Main executable 'almd-cli' not found or not executable in $SCRIPT_DIR" >&2
   exit 1
 fi
 
-# Always use ~/.almd as the app home
-APP_HOME="$HOME/.almd"
-MAIN="$APP_HOME/src/main.lua"
-LUA_PATH_PREFIX="$APP_HOME/src/?.lua;$APP_HOME/src/lib/?.lua;"
-LUA_CPATH_PREFIX="$APP_HOME/src/?.so;$APP_HOME/src/lib/?.so;"
-
-if [ -n "$LUA_PATH" ]; then
-  export LUA_PATH="$LUA_PATH_PREFIX$LUA_PATH"
-else
-  export LUA_PATH="$LUA_PATH_PREFIX;"
-fi
-
-if [ -n "$LUA_CPATH" ]; then
-  export LUA_CPATH="$LUA_CPATH_PREFIX$LUA_CPATH"
-else
-  export LUA_CPATH="$LUA_CPATH_PREFIX;"
-fi
-
-exec "$LUA_BIN" "$MAIN" "$@"
+# Execute the Go binary, passing all arguments
+exec "$CLI_BIN" "$@"
 EXIT_CODE=$?
 exit $EXIT_CODE

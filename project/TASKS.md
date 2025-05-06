@@ -20,17 +20,17 @@
     -   [x] Add the basic `main` function.
     -   [x] Manual Verification: File exists.
 
--   [ ] **Task 0.3: Basic `urfave/cli` App Setup**
-    -   [ ] Import `urfave/cli/v2`.
-    -   [ ] Create a new `cli.App` instance in `main`.
-    -   [ ] Set the `Name` (`almd`), `Usage`, and `Version` for the app.
-    -   [ ] Implement the `app.Run(os.Args)` call.
-    -   [ ] Manual Verification: Run `go run main.go --version` and confirm the version is printed. Run `go run main.go --help` and confirm basic usage is shown.
+-   [x] **Task 0.3: Basic `urfave/cli` App Setup**
+    -   [x] Import `urfave/cli/v2`.
+    -   [x] Create a new `cli.App` instance in `main`.
+    -   [x] Set the `Name` (`almd`), `Usage`, and `Version` for the app.
+    -   [x] Implement the `app.Run(os.Args)` call.
+    -   [x] Manual Verification: Run `go run main.go --version` and confirm the version is printed. Run `go run main.go --help` and confirm basic usage is shown.
 
--   [ ] **Task 0.4: Define CLI Binary Name Convention**
-    -   [ ] Ensure the target executable name built by Go is `almd-cli`.
-    -   [ ] *Note:* A separate wrapper script/alias named `almd` will be used by end-users to call `almd-cli`. This task is about the Go build output name. (Build command might be `go build -o almd-cli .`)
-    -   [ ] Manual Verification: Build the project (`go build -o almd-cli .`) and confirm the output file is named `almd-cli`.
+-   [x] **Task 0.4: Define CLI Binary Name Convention**
+    -   [x] Ensure the target executable name built by Go is `almd-cli`.
+    -   [x] *Note:* A separate wrapper script/alias named `almd` will be used by end-users to call `almd-cli`. This task is about the Go build output name. (Build command might be `go build -o almd-cli .`)
+    -   [x] Manual Verification: Build the project (`go build -o almd-cli .`) and confirm the output file is named `almd-cli`.
 
 ---
 
@@ -47,7 +47,7 @@
 **Goal:** Implement the `almd init` command to interactively create a `project.toml` manifest file.
 
 -   [ ] **Task 1.1: `urfave/cli` Command Setup**
-    -   [ ] Define the `init` command structure (`cli.Command`) within `commands/init.go` (or `main.go` if preferred initially).
+    -   [ ] Define the `init` command structure (`cli.Command`) within `commands/init.go`.
     -   [ ] Add the command to the `urfave/cli` App in `main.go`.
     -   [ ] Ensure basic command registration works (`almd init --help`).
     -   [ ] Manual Verification: Run `almd init --help` and confirm the command is listed.
