@@ -46,34 +46,33 @@
 
 **Goal:** Implement the `almd init` command to interactively create a `project.toml` manifest file.
 
--   [ ] **Task 1.1: `urfave/cli` Command Setup**
-    -   [ ] Define the `init` command structure (`cli.Command`) within `commands/init.go`.
-    -   [ ] Add the command to the `urfave/cli` App in `main.go`.
-    -   [ ] Ensure basic command registration works (`almd init --help`).
-    -   [ ] Manual Verification: Run `almd init --help` and confirm the command is listed.
+-   [x] **Task 1.1: `urfave/cli` Command Setup**
+    -   [x] Define the `init` command structure (`cli.Command`) within `commands/init.go`.
+    -   [x] Add the command to the `urfave/cli` App in `main.go`.
+    -   [x] Ensure basic command registration works (`almd init --help`).
+    -   [x] Manual Verification: Run `almd init --help` and confirm the command is listed.
 
--   [ ] **Task 1.2: Implement Interactive Prompts for Metadata**
-    -   [ ] Add logic within the `init` command's `Action` to prompt the user for:
+-   [x] **Task 1.2: Implement Interactive Prompts for Metadata**
+    -   [x] Add logic within the `init` command's `Action` to prompt the user for:
         -   `package` name (with default).
         -   `version` (with default `0.1.0`).
         -   `license` (with default `MIT`).
         -   `description` (with default).
         -   Optional: `language` details (consider defaulting initially).
-    -   [ ] Use standard Go input/output (`fmt.Scanln`, `fmt.Printf`, or a dedicated prompting library if approved).
-    -   [ ] Manual Verification: Run `almd init` interactively and confirm prompts appear and capture input correctly.
+    -   [x] Manual Verification: Run `almd init` interactively and confirm prompts appear and capture input correctly.
 
--   [ ] **Task 1.3: Implement Interactive Prompts for Scripts**
-    -   [ ] Add logic to loop, prompting for script `name` and `command`.
-    -   [ ] Store collected scripts (e.g., in a `map[string]string`).
-    -   [ ] Exit the loop when an empty script name is entered.
-    -   [ ] Implement logic to add a default `run` script (`go run .` or `go run main.go`) if the user doesn't define one.
-    -   [ ] Manual Verification: Run `almd init` interactively, add a few scripts, skip adding `run`, and verify the default is included conceptually (actual file writing is next).
+-   [x] **Task 1.3: Implement Interactive Prompts for Scripts**
+    -   [x] Add logic to loop, prompting for script `name` and `command`.
+    -   [x] Store collected scripts (e.g., in a `map[string]string`).
+    -   [x] Exit the loop when an empty script name is entered.
+    -   [x] Implement logic to add a default `run` script (`go run .` or `go run main.go`) if the user doesn't define one.
+    -   [x] Manual Verification: Run `almd init` interactively, add a few scripts, skip adding `run`, and verify the default is included conceptually (actual file writing is next).
 
--   [ ] **Task 1.4: Implement Interactive Prompts for Dependencies (Placeholders)**
-    -   [ ] Add logic to loop, prompting for dependency `name` and a simple `source/version` string (as per PRD).
-    -   [ ] Store collected dependency placeholders (e.g., in a `map[string]string` or `map[string]interface{}`).
-    -   [ ] Exit the loop when an empty dependency name is entered.
-    -   [ ] Manual Verification: Run `almd init` interactively, add a few placeholder dependencies.
+-   [x] **Task 1.4: Implement Interactive Prompts for Dependencies (Placeholders)**
+    -   [x] Add logic to loop, prompting for dependency `name` and a simple `source/version` string (as per PRD).
+    -   [x] Store collected dependency placeholders (e.g., in a `map[string]string` or `map[string]interface{}`).
+    -   [x] Exit the loop when an empty dependency name is entered.
+    -   [x] Manual Verification: Run `almd init` interactively, add a few placeholder dependencies.
 
 -   [ ] **Task 1.5: Implement `project.toml` Structure and Writing**
     -   [ ] Define Go structs in `internal/project/` to represent the `project.toml` structure (package info, scripts, dependencies).

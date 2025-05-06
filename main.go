@@ -9,21 +9,24 @@ import (
 	"os"
 
 	"github.com/urfave/cli/v2"
+
+	"github.com/nightconcept/almandine-go/commands"
 )
 
 // The main function, where the program execution begins.
 func main() {
 	app := &cli.App{
 		Name:    "almd",
-		Usage:   "A project management tool",
-		Version: "v0.0.1", // Start with an initial version
+		Usage:   "A simple project manager for single-file dependencies",
+		Version: "v0.0.1", // Placeholder version
 		Action: func(c *cli.Context) error {
 			// Default action if no command is specified
 			cli.ShowAppHelp(c)
 			return nil
 		},
-		// Define commands here later
-		Commands: []*cli.Command{},
+		Commands: []*cli.Command{
+			commands.GetInitCommand(),
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
