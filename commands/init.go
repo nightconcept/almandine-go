@@ -7,8 +7,26 @@ import (
 	"os"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	"github.com/urfave/cli/v2"
 )
+
+// --- Structs for project.toml ---
+
+// PackageMeta holds the metadata for the [package] section
+type PackageMeta struct {
+	Name        string `toml:"name"`
+	Version     string `toml:"version"`
+	Description string `toml:"description,omitempty"` // Use omitempty for optional fields
+	License     string `toml:"license"`
+}
+
+// ProjectConfig represents the overall structure of project.toml
+type ProjectConfig struct {
+	Package      PackageMeta       `toml:"package"`
+	Scripts      map[string]string `toml:"scripts"`
+	Dependencies map[string]string `toml:"dependencies,omitempty"` // Use omitempty if no dependencies
+}
 
 // Helper function to prompt user and get input with a default value
 func promptWithDefault(reader *bufio.Reader, promptText string, defaultValue string) (string, error) {
@@ -104,8 +122,7 @@ func GetInitCommand() *cli.Command {
 
 			// Add default 'run' script if not provided by the user
 			if _, exists := scripts["run"]; !exists {
-				scripts["run"] = "go run main.go"
-				fmt.Println("Default 'run' script ('go run main.go') added.")
+				scripts["run"] = "lua src/main.lua"
 			}
 
 			// For now, just print the collected scripts
@@ -153,7 +170,35 @@ func GetInitCommand() *cli.Command {
 			}
 			fmt.Println("-------------------------------------------")
 
-			// TODO: Implement project.toml writing (Task 1.5) using collected data
+			// --- Task 1.5: Write project.toml ---
+			config := ProjectConfig{
+				Package: PackageMeta{
+					Name:        packageName,
+					Version:     version,
+					Description: description, // Will be omitted if empty due to tag
+					License:     license,
+				},
+				Scripts:      scripts,
+				Dependencies: dependencies, // Will be omitted if empty due to tag
+			}
+
+			// Create or truncate the project.toml file
+			file, err := os.Create("project.toml")
+			if err != nil {
+				return cli.Exit(fmt.Sprintf("Error creating project.toml: %v", err), 1)
+			}
+			defer file.Close() // Ensure file is closed
+
+			// Encode the config struct to TOML and write to the file
+			encoder := toml.NewEncoder(file)
+			// Indentation settings for readability (optional but nice)
+			encoder.Indent = "\t" // Or use spaces: encoder.Indent = "  "
+
+			if err := encoder.Encode(config); err != nil {
+				return cli.Exit(fmt.Sprintf("Error writing to project.toml: %v", err), 1)
+			}
+
+			fmt.Println("\nSuccessfully created project.toml!") // Confirmation message
 
 			return nil
 		},
