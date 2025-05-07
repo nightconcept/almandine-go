@@ -57,7 +57,7 @@ go build -o build/almd ./cmd/almd
 Run tests.
 
 ```sh
-go test ./internal/cli
+go test ./...
 ```
 
 ---
