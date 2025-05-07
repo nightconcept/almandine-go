@@ -26,11 +26,11 @@ func simulateInput(inputs []string) (*os.File, *os.File, error) {
 	inputString := strings.Join(inputs, "\n") + "\n"
 	_, err = w.WriteString(inputString)
 	if err != nil {
-		r.Close()
-		w.Close()
+		_ = r.Close()
+		_ = w.Close()
 		return nil, nil, err
 	}
-	w.Close() // Close writer to signal EOF for reader
+	_ = w.Close() // Close writer to signal EOF for reader
 	return r, w, nil
 }
 
@@ -42,7 +42,7 @@ func captureOutput() (*os.File, *os.File, *bytes.Buffer, error) {
 	}
 	var buf bytes.Buffer
 	// Use a MultiWriter to capture stdout and also print it if needed for debugging
-	w.Write([]byte{})
+	_, _ = w.Write([]byte{})
 	return r, w, &buf, nil
 }
 
@@ -50,13 +50,13 @@ func TestInitCommand(t *testing.T) {
 	// --- Test Setup ---
 	tempDir, err := os.MkdirTemp("", "almandine_init_test")
 	require.NoError(t, err, "Failed to create temporary directory")
-	defer os.RemoveAll(tempDir) // Clean up afterwards
+	defer func() { _ = os.RemoveAll(tempDir) }() // Clean up afterwards
 
 	originalWd, err := os.Getwd()
 	require.NoError(t, err, "Failed to get current working directory")
 	err = os.Chdir(tempDir)
 	require.NoError(t, err, "Failed to change to temporary directory")
-	defer os.Chdir(originalWd) // Change back
+	defer func() { _ = os.Chdir(originalWd) }() // Change back
 
 	// Prepare simulated user input (simulate pressing Enter for defaults where applicable)
 	// Order: name, version, license, description, script name, script cmd, empty script name, dep name, dep src, empty dep name
@@ -78,14 +78,14 @@ func TestInitCommand(t *testing.T) {
 	rStdin, _, err := simulateInput(simulatedInputs)
 	require.NoError(t, err, "Failed to simulate stdin")
 	os.Stdin = rStdin
-	defer func() { os.Stdin = oldStdin; rStdin.Close() }() // Restore Stdin
+	defer func() { os.Stdin = oldStdin; _ = rStdin.Close() }() // Restore Stdin
 
 	// Capture Stdout (optional, but can be useful for debugging output)
 	oldStdout := os.Stdout
 	rStdout, wStdout, _, err := captureOutput()
 	require.NoError(t, err, "Failed to capture stdout")
 	os.Stdout = wStdout
-	defer func() { os.Stdout = oldStdout; wStdout.Close(); rStdout.Close() }() // Restore Stdout
+	defer func() { os.Stdout = oldStdout; _ = wStdout.Close(); _ = rStdout.Close() }() // Restore Stdout
 
 	// --- Run Command ---
 	app := &cli.App{
@@ -142,13 +142,13 @@ func TestInitCommand_DefaultsAndEmpty(t *testing.T) {
 	// --- Test Setup ---
 	tempDir, err := os.MkdirTemp("", "almandine_init_test_defaults")
 	require.NoError(t, err, "Failed to create temporary directory")
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	originalWd, err := os.Getwd()
 	require.NoError(t, err, "Failed to get current working directory")
 	err = os.Chdir(tempDir)
 	require.NoError(t, err, "Failed to change to temporary directory")
-	defer os.Chdir(originalWd)
+	defer func() { _ = os.Chdir(originalWd) }()
 
 	// Simulate pressing Enter for all prompts except name (use default)
 	// name, version (default), license (default), description (empty), empty script, empty dep
@@ -165,13 +165,13 @@ func TestInitCommand_DefaultsAndEmpty(t *testing.T) {
 	rStdin, _, err := simulateInput(simulatedInputs)
 	require.NoError(t, err, "Failed to simulate stdin")
 	os.Stdin = rStdin
-	defer func() { os.Stdin = oldStdin; rStdin.Close() }()
+	defer func() { os.Stdin = oldStdin; _ = rStdin.Close() }()
 
 	oldStdout := os.Stdout
 	rStdout, wStdout, _, err := captureOutput()
 	require.NoError(t, err, "Failed to capture stdout")
 	os.Stdout = wStdout
-	defer func() { os.Stdout = oldStdout; wStdout.Close(); rStdout.Close() }()
+	defer func() { os.Stdout = oldStdout; _ = wStdout.Close(); _ = rStdout.Close() }()
 
 	// --- Run Command ---
 	app := &cli.App{

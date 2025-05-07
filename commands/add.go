@@ -164,7 +164,7 @@ var AddCommand = &cli.Command{
 					if cCtx.App != nil && cCtx.App.ErrWriter != nil {
 						errWriter = cCtx.App.ErrWriter
 					}
-					fmt.Fprintf(errWriter, "Warning: Failed to clean up downloaded file '%s': %v\n", fullPath, cleanupErr)
+					_, _ = fmt.Fprintf(errWriter, "Warning: Failed to clean up downloaded file '%s': %v\n", fullPath, cleanupErr)
 				} else {
 					if verbose {
 						fmt.Printf("Successfully cleaned up downloaded file '%s'.\n", fullPath)

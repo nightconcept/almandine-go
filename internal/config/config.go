@@ -39,7 +39,7 @@ func WriteProjectToml(filePath string, data *project.Project) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	_, err = file.Write(buf.Bytes())
 	return err

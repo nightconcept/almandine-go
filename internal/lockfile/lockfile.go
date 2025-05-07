@@ -71,7 +71,7 @@ func Save(projectRoot string, lf *Lockfile) error {
 	if err != nil {
 		return fmt.Errorf("failed to create/truncate lockfile %s: %w", lockfilePath, err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	encoder := toml.NewEncoder(file)
 	if err := encoder.Encode(lf); err != nil {

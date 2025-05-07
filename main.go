@@ -29,7 +29,7 @@ func main() {
 		Version: "v0.0.1", // Placeholder version
 		Action: func(c *cli.Context) error {
 			// Default action if no command is specified
-			cli.ShowAppHelp(c)
+			_ = cli.ShowAppHelp(c)
 			return nil
 		},
 		Commands: []*cli.Command{

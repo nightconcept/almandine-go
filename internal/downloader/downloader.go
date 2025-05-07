@@ -15,7 +15,7 @@ func DownloadFile(url string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to perform GET request to %s: %w", url, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to download from %s: received status code %d", url, resp.StatusCode)

@@ -1,6 +1,7 @@
 { pkgs, inputs, ... }:
 {
   packages = with pkgs; [
+    golangci-lint
     pre-commit
   ];
 

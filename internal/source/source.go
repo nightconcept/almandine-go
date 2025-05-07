@@ -152,7 +152,7 @@ func parseGitHubURL(u *url.URL) (*ParsedSourceInfo, error) {
 	if ref == "" {
 		// This should ideally fetch the default branch, but that's an external call.
 		// For parsing, we'll state that ref couldn't be determined if not explicitly part of URL.
-		return nil, fmt.Errorf("ref (branch, tag, commit) could not be determined from URL: %s. Please specify it.", u.String())
+		return nil, fmt.Errorf("ref (branch, tag, commit) could not be determined from URL: %s. Please specify it", u.String())
 	}
 
 	canonicalURL := fmt.Sprintf("github:%s/%s/%s@%s", owner, repo, filePathInRepo, ref)
@@ -167,62 +167,4 @@ func parseGitHubURL(u *url.URL) (*ParsedSourceInfo, error) {
 		PathInRepo:        filePathInRepo,
 		SuggestedFilename: filename,
 	}, nil
-}
-
-// isGitHubURL checks if the given URL is a GitHub URL (github.com or raw.githubusercontent.com).
-// This is a helper and might be integrated or replaced by more robust checks.
-func isGitHubURL(u *url.URL) bool {
-	hostname := strings.ToLower(u.Hostname())
-	return hostname == "github.com" || hostname == "raw.githubusercontent.com"
-}
-
-// extractGitHubPathParts attempts to parse owner, repo, type, ref, and file path from a github.com URL path.
-// Returns: owner, repo, type (blob/tree/raw), ref, filePath, error
-// This function needs careful implementation to handle various GitHub URL structures.
-// Example paths:
-// /owner/repo/blob/main/file.txt
-// /owner/repo/raw/v1.0/script.sh
-// /owner/repo/tree/develop/some/dir (we'd error on 'tree' for adding files)
-// /owner/repo (ambiguous for a single file add)
-// /owner/repo/some/file.txt@main (custom format to indicate ref)
-func extractGitHubPathParts(path string) (owner, repo, refType, ref, filePath string, err error) {
-	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) < 2 {
-		err = fmt.Errorf("path too short, expected at least /owner/repo: %s", path)
-		return
-	}
-	owner = parts[0]
-	repo = parts[1]
-
-	if len(parts) >= 4 && (parts[2] == "blob" || parts[2] == "tree" || parts[2] == "raw") {
-		refType = parts[2]
-		ref = parts[3]
-		if len(parts) >= 5 {
-			filePath = strings.Join(parts[4:], "/")
-		} else if refType != "tree" { // blob or raw must have a path
-			err = fmt.Errorf("path for blob/raw is missing after ref: %s", path)
-			return
-		}
-		// For 'tree', filePath can be empty (points to root of ref) or a directory path
-	} else if len(parts) > 2 { // Potentially /owner/repo/path/to/file[@ref]
-		// Check for @ref at the end of the full path string
-		potentialPath := strings.Join(parts[2:], "/")
-
-		atIndex := strings.LastIndex(potentialPath, "@")
-		if atIndex != -1 {
-			filePath = potentialPath[:atIndex]
-			ref = potentialPath[atIndex+1:]
-			// refType is implicitly "commit" or "branch" or "tag", not "blob" or "raw" from URL structure
-			// We can leave refType empty here, or assign a generic like "ref_in_path"
-		} else {
-			// No @ref, and not blob/raw/tree. This implies path from parts[2:] is the filePath,
-			// and ref needs to be determined (e.g., default branch).
-			filePath = potentialPath
-			// Ref is undetermined from URL structure alone.
-		}
-	}
-	// If filePath is still empty and it's not a 'tree' type pointing to a repo root, it might be an issue
-	// unless the URL was just /owner/repo.
-
-	return
 }
