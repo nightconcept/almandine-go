@@ -145,14 +145,14 @@
         -   [x] Set/ensure `api_version = "1"`.
         -   [x] Save the updated lockfile back to `almd-lock.toml`.
     -   [x] Integrate this logic into the `add` command's `Action`.
-    -   [ ] Manual Verification: Run `almd add <url>`, then inspect `almd-lock.toml` to verify the entry is added/updated with the correct source URL, path, and hash format.
+    -   [x] Manual Verification: Run `almd add <url>`, then inspect `almd-lock.toml` to verify the entry is added/updated with the correct source URL, path, and hash format.
 
--   [ ] **Task 2.9: Error Handling and Cleanup**
-    -   [ ] Review the `add` command's `Action` logic.
-    -   [ ] Implement error handling using `urfave/cli`'s error reporting (e.g., `cli.Exit`).
-    -   [ ] If an error occurs *after* downloading the file but *before* successfully updating both manifest and lockfile, attempt to delete the downloaded file to maintain consistency.
-    -   [ ] Ensure clear error messages are provided to the user.
-    -   [ ] Manual Verification: Test error scenarios: invalid URL, download failure, write permission errors for manifest/lockfile, simulate failures mid-process to check cleanup.
+-   [x] **Task 2.9: Error Handling and Cleanup**
+    -   [x] Review the `add` command's `Action` logic.
+    -   [x] Implement error handling using `urfave/cli`'s error reporting (e.g., `cli.Exit`).
+    -   [x] If an error occurs *after* downloading the file but *before* successfully updating both manifest and lockfile, attempt to delete the downloaded file to maintain consistency.
+    -   [x] Ensure clear error messages are provided to the user.
+    -   [x] Manual Verification: Test error scenarios: invalid URL, download failure, write permission errors for manifest/lockfile, simulate failures mid-process to check cleanup.
 
 ## Milestone 3: Initial E2E Testing Setup (Placeholder)
 
