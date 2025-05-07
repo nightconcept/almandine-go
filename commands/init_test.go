@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/BurntSushi/toml"
-	"github.com/nightconcept/almandine-go/commands" // Use the actual module path
+	"github.com/nightconcept/almandine-go/commands"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"

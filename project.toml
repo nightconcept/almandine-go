@@ -1,7 +1,0 @@
-[package]
-	name = "my-almandine-project"
-	version = "0.1.0"
-	license = "MIT"
-
-[scripts]
-	run = "lua src/main.lua"
