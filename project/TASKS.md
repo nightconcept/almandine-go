@@ -190,9 +190,9 @@
             -   `vendor/custom/mylib` created with correct content.
             -   `project.toml` updated with `[dependencies.mylib]` pointing to `source` and `path="vendor/custom/mylib"`.
             -   `almd-lock.toml` created/updated with `[package.mylib]` including `source`, `path`, and `hash="sha256:..."`.
-    -   [ ] **Sub-Task 3.4.3: Test `almd add` - Successful Download (Inferred Name, Default Directory)**
-        -   [ ] Execute: `almd add <mock_url_to_file.lua>`.
-        -   [ ] Verify:
+    -   [x] **Sub-Task 3.4.3: Test `almd add` - Successful Download (Inferred Name, Default Directory)**
+        -   [x] Execute: `almd add <mock_url_to_file.lua>`.
+        -   [x] Verify:
             -   `libs/file.lua` (or project root, per PRD) created.
             -   Manifest and lockfile updated with inferred name `file.sh`.
     -   [ ] **Sub-Task 3.4.4: Test `almd add` - GitHub URL with Commit Hash**

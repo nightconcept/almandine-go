@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/BurntSushi/toml"
@@ -187,4 +188,77 @@ version = "0.1.0"
 	// Hash should now reflect the extracted git reference from the mockServerPath.
 	expectedHash := "github:v1.0.0" // Extracted from "/testowner/testrepo/v1.0.0/mylib_script.lua"
 	assert.Equal(t, expectedHash, lockPkgEntry.Hash, "Package hash mismatch in almd-lock.toml")
+}
+
+func TestAddCommand_Success_InferredName_DefaultDir(t *testing.T) {
+	// --- Test Setup ---
+	// This test implements Task 3.4.3
+	initialTomlContent := `
+[package]
+name = "test-project-inferred"
+version = "0.1.0"
+`
+	tempDir := setupAddTestEnvironment(t, initialTomlContent)
+
+	mockContent := "// This is a mock lua library for inferred name test\nlocal lib = {}\nreturn lib\n"
+	// Adjust mockServerPath to fit the expected /<owner>/<repo>/<ref>/<file...> structure
+	// for the test mode URL parser.
+	mockServerPath := "/inferredowner/inferredrepo/mainbranch/test_dependency_file.lua"
+	mockServer := startMockServer(t, mockServerPath, mockContent, http.StatusOK)
+
+	dependencyURL := mockServer.URL + mockServerPath
+
+	// --- Run Command ---
+	// No -n (name) or -d (directory) flags, testing inference and defaults
+	err := runAddCommand(t, tempDir, dependencyURL)
+	require.NoError(t, err, "almd add command failed")
+
+	// --- Assertions ---
+
+	// 1. Verify downloaded file content and path (inferred name, default directory)
+	sourceFileName := filepath.Base(mockServerPath)                                     // "test_dependency_file.lua"
+	inferredDepName := strings.TrimSuffix(sourceFileName, filepath.Ext(sourceFileName)) // "test_dependency_file"
+
+	expectedDiskFileName := sourceFileName // "test_dependency_file.lua"
+	// The add command defaults to "src/lib" when -d is not specified.
+	expectedDirOnDisk := "src/lib"
+	downloadedFilePath := filepath.Join(tempDir, expectedDirOnDisk, expectedDiskFileName)
+
+	require.FileExists(t, downloadedFilePath, "Downloaded file does not exist at expected path: %s", downloadedFilePath)
+	contentBytes, readErr := os.ReadFile(downloadedFilePath)
+	require.NoError(t, readErr, "Failed to read downloaded file: %s", downloadedFilePath)
+	assert.Equal(t, mockContent, string(contentBytes), "Downloaded file content mismatch")
+
+	// 2. Verify project.toml was updated correctly
+	projectTomlPath := filepath.Join(tempDir, "project.toml")
+	projCfg := readProjectToml(t, projectTomlPath)
+
+	require.NotNil(t, projCfg.Dependencies, "Dependencies map in project.toml is nil")
+	depEntry, ok := projCfg.Dependencies[inferredDepName]
+	require.True(t, ok, "Dependency entry not found in project.toml for inferred name: %s", inferredDepName)
+
+	// Because the mockServerPath now conforms to the /<owner>/<repo>/<ref>/<file...> structure,
+	// the canonical source identifier will be a GitHub-like string.
+	expectedCanonicalSource := "github:inferredowner/inferredrepo/test_dependency_file.lua@mainbranch"
+	assert.Equal(t, expectedCanonicalSource, depEntry.Source, "Dependency source mismatch in project.toml")
+
+	expectedPathInToml := filepath.ToSlash(filepath.Join(expectedDirOnDisk, expectedDiskFileName))
+	assert.Equal(t, expectedPathInToml, depEntry.Path, "Dependency path mismatch in project.toml")
+
+	// 3. Verify almd-lock.toml was created/updated correctly
+	lockFilePath := filepath.Join(tempDir, "almd-lock.toml")
+	require.FileExists(t, lockFilePath, "almd-lock.toml was not created")
+	lockCfg := readAlmdLockToml(t, lockFilePath)
+
+	assert.Equal(t, "1", lockCfg.APIVersion, "API version in almd-lock.toml mismatch")
+	require.NotNil(t, lockCfg.Package, "Packages map in almd-lock.toml is nil")
+	lockPkgEntry, ok := lockCfg.Package[inferredDepName]
+	require.True(t, ok, "Package entry not found in almd-lock.toml for inferred name: %s", inferredDepName)
+
+	assert.Equal(t, dependencyURL, lockPkgEntry.Source, "Package source mismatch in almd-lock.toml (raw URL)")
+	assert.Equal(t, expectedPathInToml, lockPkgEntry.Path, "Package path mismatch in almd-lock.toml")
+
+	// Hash should reflect the extracted git reference from the mockServerPath due to test mode parsing.
+	expectedHashLockfile := "github:mainbranch"
+	assert.Equal(t, expectedHashLockfile, lockPkgEntry.Hash, "Package hash mismatch in almd-lock.toml")
 }
