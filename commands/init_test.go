@@ -10,6 +10,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/nightconcept/almandine-go/commands"
+	"github.com/nightconcept/almandine-go/internal/project"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
@@ -108,7 +109,7 @@ func TestInitCommand(t *testing.T) {
 	tomlBytes, err := os.ReadFile(tomlPath)
 	require.NoError(t, err, "Failed to read project.toml")
 
-	var generatedConfig commands.ProjectConfig
+	var generatedConfig project.Project
 	err = toml.Unmarshal(tomlBytes, &generatedConfig)
 	require.NoError(t, err, "Failed to unmarshal project.toml")
 
@@ -120,7 +121,7 @@ func TestInitCommand(t *testing.T) {
 
 	// Verify Scripts (should include the default 'run' and the provided 'build')
 	expectedScripts := map[string]string{
-		"run":   "lua src/main.lua",
+		"run":   "go run main.go",
 		"build": "go build .",
 	}
 	assert.Equal(t, expectedScripts, generatedConfig.Scripts, "Scripts mismatch")
@@ -188,7 +189,7 @@ func TestInitCommand_DefaultsAndEmpty(t *testing.T) {
 	tomlBytes, err := os.ReadFile(tomlPath)
 	require.NoError(t, err, "Failed to read project.toml")
 
-	var generatedConfig commands.ProjectConfig
+	var generatedConfig project.Project
 	err = toml.Unmarshal(tomlBytes, &generatedConfig)
 	require.NoError(t, err, "Failed to unmarshal project.toml")
 
@@ -200,7 +201,7 @@ func TestInitCommand_DefaultsAndEmpty(t *testing.T) {
 
 	// Verify Scripts (should only include the default 'run')
 	expectedScripts := map[string]string{
-		"run": "lua src/main.lua",
+		"run": "go run main.go",
 	}
 	assert.Equal(t, expectedScripts, generatedConfig.Scripts, "Scripts mismatch (only default expected)")
 

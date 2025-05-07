@@ -7,26 +7,28 @@ import (
 	"os"
 	"strings"
 
-	"github.com/BurntSushi/toml"
+	// "github.com/BurntSushi/toml" // No longer directly used here
+	"github.com/nightconcept/almandine-go/internal/config"
+	"github.com/nightconcept/almandine-go/internal/project"
 	"github.com/urfave/cli/v2"
 )
 
-// --- Structs for project.toml ---
-
-// PackageMeta holds the metadata for the [package] section
-type PackageMeta struct {
-	Name        string `toml:"name"`
-	Version     string `toml:"version"`
-	Description string `toml:"description,omitempty"` // Use omitempty for optional fields
-	License     string `toml:"license"`
-}
-
-// ProjectConfig represents the overall structure of project.toml
-type ProjectConfig struct {
-	Package      PackageMeta       `toml:"package"`
-	Scripts      map[string]string `toml:"scripts"`
-	Dependencies map[string]string `toml:"dependencies,omitempty"` // Use omitempty if no dependencies
-}
+// --- Structs for project.toml --- // These are now removed and defined in internal/project/project.go
+//
+// // PackageMeta holds the metadata for the [package] section
+// type PackageMeta struct {
+// Name        string `toml:"name"`
+// Version     string `toml:"version"`
+// Description string `toml:"description,omitempty"` // Use omitempty for optional fields
+// License     string `toml:"license"`
+// }
+//
+// // ProjectConfig represents the overall structure of project.toml
+// type ProjectConfig struct {
+// Package      PackageMeta       `toml:"package"`
+// Scripts      map[string]string `toml:"scripts"`
+// Dependencies map[string]string `toml:"dependencies,omitempty"` // Use omitempty if no dependencies
+// }
 
 // Helper function to prompt user and get input with a default value
 func promptWithDefault(reader *bufio.Reader, promptText string, defaultValue string) (string, error) {
@@ -55,7 +57,7 @@ func GetInitCommand() *cli.Command {
 		Name:  "init",
 		Usage: "Initialize a new Almandine project (creates project.toml)",
 		Action: func(c *cli.Context) error {
-			fmt.Println("Starting project initialization...") // Adjusted initial message
+			fmt.Println("Starting project initialization...")
 
 			reader := bufio.NewReader(os.Stdin)
 
@@ -65,7 +67,6 @@ func GetInitCommand() *cli.Command {
 			// Prompt for package name
 			packageName, err = promptWithDefault(reader, "Package name", "my-almandine-project")
 			if err != nil {
-				// Use cli.Exit for cleaner error handling in actions
 				return cli.Exit(err.Error(), 1)
 			}
 
@@ -82,13 +83,11 @@ func GetInitCommand() *cli.Command {
 			}
 
 			// Prompt for description (optional, default is empty)
-			// Use the helper, but pass an empty default
 			description, err = promptWithDefault(reader, "Description (optional)", "")
 			if err != nil {
-				return cli.Exit(err.Error(), 1) // Use consistent error exit
+				return cli.Exit(err.Error(), 1)
 			}
 
-			// For now, just print the collected values (Task 1.5 will write the file)
 			fmt.Println("\n--- Collected Metadata ---")
 			fmt.Printf("Package Name: %s\n", packageName)
 			fmt.Printf("Version:      %s\n", version)
@@ -101,37 +100,35 @@ func GetInitCommand() *cli.Command {
 			fmt.Println("\nEnter scripts (leave script name empty to finish):")
 
 			for {
-				scriptName, err := promptWithDefault(reader, "Script name", "")
-				if err != nil {
-					return cli.Exit(fmt.Sprintf("Error reading script name: %v", err), 1)
+				scriptName, errLFSN := promptWithDefault(reader, "Script name", "") // Renamed err to avoid conflict
+				if errLFSN != nil {
+					return cli.Exit(fmt.Sprintf("Error reading script name: %v", errLFSN), 1)
 				}
 
 				if scriptName == "" {
-					break // Exit loop if script name is empty
+					break
 				}
 
-				scriptCmd, err := promptWithDefault(reader, fmt.Sprintf("Command for script '%s'", scriptName), "")
-				if err != nil {
-					return cli.Exit(fmt.Sprintf("Error reading command for script '%s': %v", scriptName, err), 1)
+				scriptCmd, errLFSC := promptWithDefault(reader, fmt.Sprintf("Command for script '%s'", scriptName), "") // Renamed err
+				if errLFSC != nil {
+					return cli.Exit(fmt.Sprintf("Error reading command for script '%s': %v", scriptName, errLFSC), 1)
 				}
-
-				// Add or overwrite script
 				scripts[scriptName] = scriptCmd
 			}
 
-			// Add default 'run' script if not provided by the user
 			if _, exists := scripts["run"]; !exists {
-				scripts["run"] = "lua src/main.lua"
+				scripts["run"] = "go run main.go"
+				fmt.Println("Default 'run' script ('go run main.go') added.")
 			}
 
-			// For now, just print the collected scripts
 			fmt.Println("\n--- Collected Scripts ---")
 			if len(scripts) > 0 {
 				for name, cmd := range scripts {
 					fmt.Printf("%s = \"%s\"\n", name, cmd)
 				}
 			} else {
-				fmt.Println("(No scripts defined)") // Should not happen due to default 'run'
+				// This case should ideally not be hit due to default run script
+				fmt.Println("(No scripts defined)")
 			}
 			fmt.Println("-------------------------")
 
@@ -140,53 +137,51 @@ func GetInitCommand() *cli.Command {
 			fmt.Println("\nEnter dependencies (leave dependency name empty to finish):")
 
 			for {
-				depName, err := promptWithDefault(reader, "Dependency name", "")
-				if err != nil {
-					return cli.Exit(fmt.Sprintf("Error reading dependency name: %v", err), 1)
+				depName, errLFDN := promptWithDefault(reader, "Dependency name", "") // Renamed err
+				if errLFDN != nil {
+					return cli.Exit(fmt.Sprintf("Error reading dependency name: %v", errLFDN), 1)
 				}
 
 				if depName == "" {
-					break // Exit loop if dependency name is empty
+					break
 				}
 
-				// Simple source/version string for now, as per PRD placeholder
-				depSource, err := promptWithDefault(reader, fmt.Sprintf("Source/Version for dependency '%s'", depName), "")
-				if err != nil {
-					return cli.Exit(fmt.Sprintf("Error reading source for dependency '%s': %v", depName, err), 1)
+				depSource, errLFDS := promptWithDefault(reader, fmt.Sprintf("Source/Version for dependency '%s'", depName), "") // Renamed err
+				if errLFDS != nil {
+					return cli.Exit(fmt.Sprintf("Error reading source for dependency '%s': %v", depName, errLFDS), 1)
 				}
-
 				dependencies[depName] = depSource
 			}
 
-			config := ProjectConfig{
-				Package: PackageMeta{
+			fmt.Println("\n--- Collected Dependencies ---")
+			if len(dependencies) > 0 {
+				for name, source := range dependencies {
+					fmt.Printf("%s = \"%s\"\n", name, source)
+				}
+			} else {
+				fmt.Println("(No dependencies defined)")
+			}
+			fmt.Println("----------------------------")
+
+			// Populate the project structure
+			projectData := project.Project{
+				Package: &project.PackageInfo{
 					Name:        packageName,
 					Version:     version,
-					Description: description, // Will be omitted if empty due to tag
 					License:     license,
+					Description: description,
 				},
 				Scripts:      scripts,
-				Dependencies: dependencies, // Will be omitted if empty due to tag
+				Dependencies: dependencies,
 			}
 
-			// Create or truncate the project.toml file
-			file, err := os.Create("project.toml")
+			// Write to project.toml using the centralized function
+			err = config.WriteProjectToml("project.toml", &projectData)
 			if err != nil {
-				return cli.Exit(fmt.Sprintf("Error creating project.toml: %v", err), 1)
-			}
-			defer file.Close() // Ensure file is closed
-
-			// Encode the config struct to TOML and write to the file
-			encoder := toml.NewEncoder(file)
-			// Indentation settings for readability (optional but nice)
-			encoder.Indent = "\t" // Or use spaces: encoder.Indent = "  "
-
-			if err := encoder.Encode(config); err != nil {
-				return cli.Exit(fmt.Sprintf("Error writing to project.toml: %v", err), 1)
+				return cli.Exit(fmt.Sprintf("Error writing project.toml: %v", err), 1)
 			}
 
-			fmt.Println("\nWrote to project.toml")
-
+			fmt.Println("\nSuccessfully initialized project and wrote project.toml.")
 			return nil
 		},
 	}

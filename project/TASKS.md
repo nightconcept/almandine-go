@@ -74,13 +74,13 @@
     -   [x] Exit the loop when an empty dependency name is entered.
     -   [x] Manual Verification: Run `almd init` interactively, add a few placeholder dependencies.
 
--   [ ] **Task 1.5: Implement `project.toml` Structure and Writing**
-    -   [ ] Define Go structs in `internal/project/` to represent the `project.toml` structure (package info, scripts, dependencies).
-    -   [ ] Create functions in `internal/config/` to marshal the collected data into the Go struct and write it to `project.toml` using a TOML library (`github.com/BurntSushi/toml`).
-    -   [ ] Ensure the function correctly handles overwriting an existing `project.toml`.
-    -   [ ] Integrate this writing logic into the `init` command's `Action`.
-    -   [ ] Add clear output messages (success, errors).
-    -   [ ] Manual Verification: Run `almd init`, provide input, and verify `project.toml` is created correctly with the specified data and defaults. Run again and verify it overwrites. Check error handling for write failures (e.g., permissions).
+-   [x] **Task 1.5: Implement `project.toml` Structure and Writing**
+    -   [x] Define Go structs in `internal/project/` to represent the `project.toml` structure (package info, scripts, dependencies).
+    -   [x] Create functions in `internal/config/` to marshal the collected data into the Go struct and write it to `project.toml` using a TOML library (`github.com/BurntSushi/toml`).
+    -   [x] Ensure the function correctly handles overwriting an existing `project.toml`.
+    -   [x] Integrate this writing logic into the `init` command's `Action`.
+    -   [x] Add clear output messages (success, errors).
+    -   [x] Manual Verification: Run `almd init`, provide input, and verify `project.toml` is created correctly with the specified data and defaults. Run again and verify it overwrites. Check error handling for write failures (e.g., permissions).
 
 ## Milestone 2: `add` Command Implementation
 
