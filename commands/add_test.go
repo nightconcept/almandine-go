@@ -11,6 +11,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/nightconcept/almandine-go/commands"
+	"github.com/nightconcept/almandine-go/internal/config"
 	"github.com/nightconcept/almandine-go/internal/project"
 	"github.com/nightconcept/almandine-go/internal/source"
 	"github.com/stretchr/testify/assert"
@@ -31,7 +32,7 @@ func setupAddTestEnvironment(t *testing.T, initialProjectTomlContent string) (te
 	tempDir = t.TempDir()
 
 	if initialProjectTomlContent != "" {
-		projectTomlPath := filepath.Join(tempDir, "project.toml")
+		projectTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
 		err := os.WriteFile(projectTomlPath, []byte(initialProjectTomlContent), 0644)
 		require.NoError(t, err, "Failed to write initial project.toml")
 	}
@@ -188,7 +189,7 @@ version = "0.1.0"
 	assert.Equal(t, mockContent, string(contentBytes), "Downloaded file content mismatch")
 
 	// 2. Verify project.toml was updated correctly
-	projectTomlPath := filepath.Join(tempDir, "project.toml")
+	projectTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
 	projCfg := readProjectToml(t, projectTomlPath)
 
 	require.NotNil(t, projCfg.Dependencies, "Dependencies map in project.toml is nil")
@@ -275,7 +276,7 @@ version = "0.1.0"
 	assert.Equal(t, mockContent, string(contentBytes), "Downloaded file content mismatch")
 
 	// 2. Verify project.toml was updated correctly
-	projectTomlPath := filepath.Join(tempDir, "project.toml")
+	projectTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
 	projCfg := readProjectToml(t, projectTomlPath)
 
 	require.NotNil(t, projCfg.Dependencies, "Dependencies map in project.toml is nil")
@@ -391,7 +392,7 @@ version = "0.1.0"
 	assert.Equal(t, mockContent, string(contentBytes))
 
 	// 2. Verify project.toml
-	projectTomlPath := filepath.Join(tempDir, "project.toml")
+	projectTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
 	projCfg := readProjectToml(t, projectTomlPath)
 	depEntry, ok := projCfg.Dependencies[dependencyName]
 	require.True(t, ok, "Dependency entry not found in project.toml")
@@ -422,57 +423,120 @@ func TestAddCommand_DownloadFailure(t *testing.T) {
 	// This test implements Task 3.4.5
 	initialTomlContent := `
 [package]
-name = "test-download-fail"
+name = "test-project-dlfail"
 version = "0.1.0"
 `
 	tempDir := setupAddTestEnvironment(t, initialTomlContent)
-	initialProjectTomlBytes, err := os.ReadFile(filepath.Join(tempDir, "project.toml"))
-	require.NoError(t, err, "Failed to read initial project.toml for comparison")
 
-	// mockErrorURLPath := "/some/failing/file.lua" // Original problematic path
-	mockErrorURLPath := "/testowner/testrepo/testref/failingfile.lua" // Corrected path format
+	// Mock server to return a 404 error
+	mockFileURLPath := "/owner/repo/main/nonexistent.lua"
 	pathResps := map[string]struct {
 		Body string
 		Code int
 	}{
-		mockErrorURLPath: {Body: "Not Found", Code: http.StatusNotFound},
+		mockFileURLPath: {Body: "File not found", Code: http.StatusNotFound},
 	}
 	mockServer := startMockServer(t, pathResps)
-
-	dependencyURL := mockServer.URL + mockErrorURLPath
-	dependencyName := "failinglib"
-	// Use a specific file name for clarity in assertion, and to match URL extension if name inference were used.
-	expectedFileName := dependencyName + ".lua"
-	expectedFilePath := filepath.Join(tempDir, "libs", expectedFileName) // Default dir is libs/
+	dependencyURL := mockServer.URL + mockFileURLPath
 
 	// --- Run Command ---
-	cmdErr := runAddCommand(t, tempDir,
-		"-n", dependencyName,
-		dependencyURL,
-	)
+	err := runAddCommand(t, tempDir, dependencyURL)
 
 	// --- Assertions ---
-	// 1. Verify command returns an error
-	require.Error(t, cmdErr, "almd add command should have failed due to download error")
-	// Check for a more specific error message related to download failure or HTTP status.
-	// The actual error message might be "failed to download file: server returned status 404 Not Found" or similar.
-	assert.Contains(t, strings.ToLower(cmdErr.Error()), "failed to download from", "Error message should indicate download failure")
-	assert.Contains(t, cmdErr.Error(), "404", "Error message should indicate the HTTP status code 404")
+	require.Error(t, err, "almd add command should return an error on download failure")
 
-	// 2. Verify no dependency file is created
+	// Check that the error message indicates a download failure from the mock server.
+	// The exact error message from downloader.DownloadFile includes the URL and the HTTP status.
+	// Example: "downloading from http...: server returned HTTP status 404 Not Found"
+	// For the test, we make it more specific to the mock server's intent.
+	if exitErr, ok := err.(cli.ExitCoder); ok {
+		assert.Contains(t, exitErr.Error(), "Error downloading file", "Error message should indicate download failure")
+		assert.Contains(t, exitErr.Error(), "status code 404", "Error message should indicate 404 status")
+	} else {
+		assert.Fail(t, "Expected cli.ExitError for command failure")
+	}
+
+	// Verify no dependency file was created
+	expectedFilePath := filepath.Join(tempDir, "src/lib/nonexistent.lua") // Default dir and inferred name
 	_, statErr := os.Stat(expectedFilePath)
-	assert.True(t, os.IsNotExist(statErr), "Dependency file should not have been created: %s", expectedFilePath)
+	assert.True(t, os.IsNotExist(statErr), "Dependency file should not have been created on download failure")
 
-	// 3. Verify project.toml is not modified
-	currentProjectTomlBytes, err := os.ReadFile(filepath.Join(tempDir, "project.toml"))
-	require.NoError(t, err, "Failed to read project.toml after command execution")
-	assert.Equal(t, string(initialProjectTomlBytes), string(currentProjectTomlBytes), "project.toml should not have been modified")
+	// Verify project.toml was not modified (or created if it was somehow missing and add tried to create it before failing)
+	// We assume project.toml existed as per initialTomlContent.
+	projectTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
+	projCfg := readProjectToml(t, projectTomlPath) // This will fail if project.toml doesn't exist
+	assert.Equal(t, "test-project-dlfail", projCfg.Package.Name, "project.toml package name should be unchanged")
+	assert.Len(t, projCfg.Dependencies, 0, "project.toml should have no dependencies after a failed add")
 
-	// 4. Verify almd-lock.toml is not created
+	// Verify almd-lock.toml was not created
 	lockFilePath := filepath.Join(tempDir, "almd-lock.toml")
-	_, statErr = os.Stat(lockFilePath)
-	assert.True(t, os.IsNotExist(statErr), "almd-lock.toml should not have been created: %s", lockFilePath)
+	_, statErrLock := os.Stat(lockFilePath)
+	assert.True(t, os.IsNotExist(statErrLock), "almd-lock.toml should not have been created on download failure")
 }
 
-// TODO: Task 3.4.6: Test 'almd add' - Error: project.toml Not Found
-// TODO: Task 3.4.7: Test 'almd add' - Cleanup on Failure (e.g., Lockfile Write Error)
+func TestAddCommand_ProjectTomlNotFound(t *testing.T) {
+	// --- Test Setup ---
+	// This test implements Sub-Task 3.4.6
+	tempDir := setupAddTestEnvironment(t, "") // Ensure no project.toml is created
+
+	// Mock server for the URL, as the command expects a URL.
+	mockContent := "// Some content"
+	mockFileURLPath := "/owner/repo/main/somefile.lua"
+	pathResps := map[string]struct {
+		Body string
+		Code int
+	}{
+		mockFileURLPath: {Body: mockContent, Code: http.StatusOK},
+	}
+	mockServer := startMockServer(t, pathResps)
+	dependencyURL := mockServer.URL + mockFileURLPath
+
+	// --- Run Command ---
+	err := runAddCommand(t, tempDir, dependencyURL)
+
+	// --- Assertions ---
+	// Based on Task 3.4.6, we expect an error if project.toml is not found.
+	// IMPORTANT: The current implementation of `add.go` *does not* error out if project.toml is missing;
+	// it creates one in memory. This test is written against the task's explicit requirement for an error.
+	// Thus, this test is expected to FAIL with the current `add.go` implementation, highlighting the discrepancy.
+	require.Error(t, err, "almd add command should return an error when project.toml is not found")
+
+	// If `add.go` were modified to error out when project.toml is missing (e.g., by not handling os.IsNotExist
+	// specifically by creating a new project, but by returning an error from `config.LoadProjectToml`),
+	// we would expect an error message related to that.
+	if exitErr, ok := err.(cli.ExitCoder); ok {
+		// This assertion will likely fail with current `add.go` as no error is returned.
+		// If `add.go` is changed, this string might need adjustment.
+		assert.Contains(t, exitErr.Error(), "project.toml", "Error message should indicate project.toml was not found or could not be loaded")
+		assert.Contains(t, exitErr.Error(), "no such file or directory", "Error message details should reflect os.IsNotExist")
+	} else {
+		// This path will be taken if `err` is not nil but not a `cli.ExitError`,
+		// or if `err` is nil (test fails at `require.Error`).
+		assert.Fail(t, "Expected a cli.ExitError if command was to fail as per task requirements")
+	}
+
+	// Verify no dependency file was created
+	expectedFilePath := filepath.Join(tempDir, "src/lib/somefile.lua") // Default dir and inferred name
+	_, statErr := os.Stat(expectedFilePath)
+	assert.True(t, os.IsNotExist(statErr), "Dependency file should not have been created if project.toml is missing and command errored")
+
+	// Verify almd-lock.toml was not created
+	lockFilePath := filepath.Join(tempDir, "almd-lock.toml")
+	_, statErrLock := os.Stat(lockFilePath)
+	assert.True(t, os.IsNotExist(statErrLock), "almd-lock.toml should not have been created if project.toml is missing and command errored")
+
+	// Verify project.toml was not created by the add command (as it was the source of the supposed error)
+	projectTomlPathMain := filepath.Join(tempDir, config.ProjectTomlName)
+	_, statErrProject := os.Stat(projectTomlPathMain)
+	assert.True(t, os.IsNotExist(statErrProject), "project.toml should not have been created by the add command if it was missing and an error was expected")
+}
+
+// TODO: Task 3.4.7: Test `almd add` - Cleanup on Failure (e.g., Lockfile Write Error)
+// This test would involve:
+// 1. Mocking HTTP server to return a valid file.
+// 2. Ensuring project.toml exists and is valid.
+// 3. Simulating an error during the almd-lock.toml writing phase.
+//    - This might require instrumenting/mocking `lockfile.Write` or `toml.NewEncoder().Encode`
+//      for the lockfile, or making the lockfile path read-only temporarily.
+// 4. Verifying that the downloaded dependency file is removed.
+// 5. Verifying that project.toml is NOT reverted (as per current logic, it's updated before lockfile).

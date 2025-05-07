@@ -196,10 +196,9 @@ var AddCommand = &cli.Command{
 		proj, loadTomlErr := config.LoadProjectToml(projectTomlPath)
 		if loadTomlErr != nil {
 			if os.IsNotExist(loadTomlErr) {
-				if verbose {
-					fmt.Printf("%s not found, creating a new one for the dependency.\n", config.ProjectTomlName)
-				}
-				proj = project.NewProject() // Creates with initialized maps
+				// Task 3.4.6: Return an error if project.toml is not found
+				err = fmt.Errorf("project.toml not found: %w", loadTomlErr)
+				return cli.Exit(fmt.Sprintf("Error: %s. File '%s' was saved but is now being cleaned up.", err, fullPath), 1)
 			} else {
 				err = fmt.Errorf("loading %s: %w", config.ProjectTomlName, loadTomlErr)
 				return cli.Exit(fmt.Sprintf("Error %s. File '%s' was saved but is now being cleaned up.", err, fullPath), 1)
