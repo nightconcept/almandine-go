@@ -26,6 +26,7 @@ func main() {
 		},
 		Commands: []*cli.Command{
 			commands.GetInitCommand(),
+			commands.AddCommand,
 		},
 	}
 

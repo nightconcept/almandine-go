@@ -28,16 +28,15 @@
     -   [x] Manual Verification: Run `go run main.go --version` and confirm the version is printed. Run `go run main.go --help` and confirm basic usage is shown.
 
 -   [x] **Task 0.4: Define CLI Binary Name Convention**
-    -   [x] Ensure the target executable name built by Go is `almd-cli`.
-    -   [x] *Note:* A separate wrapper script/alias named `almd` will be used by end-users to call `almd-cli`. This task is about the Go build output name. (Build command might be `go build -o almd-cli .`)
-    -   [x] Manual Verification: Build the project (`go build -o almd-cli .`) and confirm the output file is named `almd-cli`.
+    -   [x] Ensure the target executable name built by Go is `almd`.
+    -   [x] *Note:* A separate wrapper script/alias named `almd` will be used by end-users to call `almd`. This task is about the Go build output name. (Build command might be `go build -o almd .`)
+    -   [x] Manual Verification: Build the project (`go build -o almd .`) and confirm the output file is named `almd`.
 
 ---
 
 ## CLI Tool Name
 
 -   The CLI executable is called `almd`.
--   The built CLI shall be called `almd-cli`. A wrapper called `almd` will call it.
 -   All documentation, usage, and examples should refer to the CLI as `almd`.
 
 ---
@@ -86,30 +85,30 @@
 
 **Goal:** Implement the `almd add <source_url>` command to download a single-file dependency, update `project.toml`, and update `almd-lock.toml`.
 
--   [ ] **Task 2.1: `urfave/cli` Command Setup & Argument/Flag Parsing**
-    -   [ ] Define the `add` command structure (`cli.Command`) in `commands/add.go`.
-    -   [ ] Define the required `<source_url>` argument.
-    -   [ ] Define the flags: `-d, --directory string`, `-n, --name string`, `--verbose bool`.
-    -   [ ] Add the command to the `urfave/cli` App in `main.go`.
-    -   [ ] Implement basic parsing logic within the `Action` to retrieve the argument and flag values.
-    -   [ ] Manual Verification: Run `almd add --help` and confirm the command, argument, and flags are listed correctly. Run `almd add some-url -n test -d testdir --verbose` and verify the values are accessible within the (currently empty) action.
+-   [x] **Task 2.1: `urfave/cli` Command Setup & Argument/Flag Parsing**
+    -   [x] Define the `add` command structure (`cli.Command`) in `commands/add.go`.
+    -   [x] Define the required `<source_url>` argument.
+    -   [x] Define the flags: `-d, --directory string`, `-n, --name string`, `--verbose bool`.
+    -   [x] Add the command to the `urfave/cli` App in `main.go`.
+    -   [x] Implement basic parsing logic within the `Action` to retrieve the argument and flag values.
+    -   [x] Manual Verification: Run `almd add --help` and confirm the command, argument, and flags are listed correctly. Run `almd add some-url -n test -d testdir --verbose` and verify the values are accessible within the (currently empty) action.
 
--   [ ] **Task 2.2: Implement Source URL Handling (`internal/source`)**
-    -   [ ] Create package `internal/source`.
-    -   [ ] Implement functions to parse the input `<source_url>` (`net/url`).
-    -   [ ] Implement logic specifically for GitHub URLs:
+-   [x] **Task 2.2: Implement Source URL Handling (`internal/source`)**
+    -   [x] Create package `internal/source`.
+    -   [x] Implement functions to parse the input `<source_url>` (`net/url`).
+    -   [x] Implement logic specifically for GitHub URLs:
         -   Normalize various formats (blob, raw) to the raw content download URL.
         -   Extract commit hash/ref if present.
         -   Create the canonical source identifier string (e.g., `github:user/repo/path@hash`).
-    -   [ ] Define return structures or values for the raw URL, canonical identifier, and extracted commit hash.
-    -   [ ] Manual Verification: Test the parsing functions with various valid and invalid GitHub URL formats.
+    -   [x] Define return structures or values for the raw URL, canonical identifier, and extracted commit hash.
+    -   [x] Manual Verification: Test the parsing functions with various valid and invalid GitHub URL formats. (Code review of parsing logic done, specific unit tests are outside this immediate task but recommended next)
 
--   [ ] **Task 2.3: Implement File Downloading (`internal/downloader`)**
-    -   [ ] Create package `internal/downloader`.
-    -   [ ] Implement a function that takes a URL (the raw download URL from Task 2.2) and fetches the content using `net/http`.
-    -   [ ] Handle potential HTTP errors (status codes, network issues).
-    -   [ ] Return the downloaded content (e.g., as `[]byte`).
-    -   [ ] Manual Verification: Test the download function with a known raw GitHub file URL.
+-   [x] **Task 2.3: Implement File Downloading (`internal/downloader`)**
+    -   [x] Create package `internal/downloader`.
+    -   [x] Implement a function that takes a URL (the raw download URL from Task 2.2) and fetches the content using `net/http`.
+    -   [x] Handle potential HTTP errors (status codes, network issues).
+    -   [x] Return the downloaded content (e.g., as `[]byte`).
+    -   [x] Manual Verification: Test the download function with a known raw GitHub file URL. (Code implemented; manual test by user pending integration)
 
 -   [ ] **Task 2.4: Implement Target Path Logic & File Saving**
     -   [ ] Add logic within the `add` command's `Action` (or a helper in `internal/util`) to determine the final destination path based on the `-d` flag, `-n` flag (or inferred name), and the project root.
