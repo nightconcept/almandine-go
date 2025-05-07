@@ -307,3 +307,172 @@ version = "0.1.0"
 	expectedHash := "commit:" + mockCommitSHA_Inferred
 	assert.Equal(t, expectedHash, lockPkgEntry.Hash, "Package hash mismatch in almd-lock.toml")
 }
+
+func TestAddCommand_GithubURLWithCommitHash(t *testing.T) {
+	// --- Test Setup ---
+	// This test implements parts of Task 3.4.4 (specifically direct commit hash in URL)
+	initialTomlContent := `
+[package]
+name = "test-project-commit-hash"
+version = "0.1.0"
+`
+	tempDir := setupAddTestEnvironment(t, initialTomlContent)
+
+	mockContent := "// Mock Lib with specific commit\nlocal lib = { info = \"version_commit123\" }\nreturn lib\n"
+	// URL includes a commit hash directly
+	directCommitSHA := "commitabc123def456ghi789jkl012mno345pqr"
+	mockFileURLPath := fmt.Sprintf("/ghowner/ghrepo/%s/mylib.lua", directCommitSHA) // Path includes commit SHA
+
+	// The canonical URL should also reflect this direct commit SHA if parsed correctly
+	// The source.ParseSourceURL logic is what determines this.
+	// If the URL is github.com/.../blob/<hash>/file, it becomes github:owner/repo/file@hash
+	// If the URL is raw.githubusercontent.com/.../<hash>/file, it also becomes github:owner/repo/file@hash
+
+	pathResps := map[string]struct {
+		Body string
+		Code int
+	}{
+		// This is the raw download URL path
+		mockFileURLPath: {Body: mockContent, Code: http.StatusOK},
+		// No separate GitHub API call for /commits is strictly needed here if the commit SHA is directly in the download URL
+		// and source.ParseSourceURL correctly extracts it as the 'Ref' for canonical URL and for lockfile hash logic.
+		// However, if the internal logic *always* tries to call GetLatestCommitSHAForFile, we might need to mock it.
+		// For simplicity, let's assume direct extraction works or that GetLatestCommitSHAForFile isn't called for raw URLs with SHAs.
+		// If tests fail related to API calls, this mock might need to be added:
+		// mockAPIPathForCommits := fmt.Sprintf("/repos/ghowner/ghrepo/commits?path=mylib.lua&sha=%s&per_page=1", directCommitSHA)
+		// pathResps[mockAPIPathForCommits] = struct{Body string; Code int}{Body: fmt.Sprintf(`[{"sha": "%s"}]`, directCommitSHA), Code: http.StatusOK}
+	}
+	// Correction: The GitHub API call for commits is indeed made, so we must mock it.
+	mockAPIPathForCommits := fmt.Sprintf("/repos/ghowner/ghrepo/commits?path=mylib.lua&sha=%s&per_page=1", directCommitSHA)
+	pathResps[mockAPIPathForCommits] = struct {
+		Body string
+		Code int
+	}{
+		Body: fmt.Sprintf(`[{"sha": "%s"}]`, directCommitSHA),
+		Code: http.StatusOK,
+	}
+	mockServer := startMockServer(t, pathResps)
+
+	// Override GithubAPIBaseURL and RawGithubContentURLBase to point to our mock server.
+	// The source URL parser needs to recognize this as a "GitHub" URL to trigger commit hash logic.
+	originalGHAPIBaseURL := source.GithubAPIBaseURL
+	// originalRawGHContentURLBase := source.RawGithubContentURLBase // This variable does not exist
+	source.GithubAPIBaseURL = mockServer.URL // For API calls like /commits
+	// source.RawGithubContentURLBase = mockServer.URL // This variable does not exist
+
+	defer func() {
+		source.GithubAPIBaseURL = originalGHAPIBaseURL
+		// source.RawGithubContentURLBase = originalRawGHContentURLBase // This variable does not exist
+	}()
+
+	// Construct a URL that our source parser will identify as a GitHub raw content URL with a commit hash.
+	// When testModeBypassHostValidation is true, ParseSourceURL expects a path like /<owner>/<repo>/<ref>/<file...>
+	// and u.String() (the full mock URL) becomes the RawURL for download.
+	dependencyURL := mockServer.URL + mockFileURLPath // mockFileURLPath is /ghowner/ghrepo/<hash>/mylib.lua
+
+	dependencyName := "mylibcommit"
+	dependencyDir := "libs/gh"
+
+	// --- Run Command ---
+	err := runAddCommand(t, tempDir,
+		"-n", dependencyName,
+		"-d", dependencyDir,
+		dependencyURL,
+	)
+	require.NoError(t, err, "almd add command failed for GitHub URL with commit hash")
+
+	// --- Assertions ---
+	expectedFileNameOnDisk := dependencyName + ".lua" // mylibcommit.lua
+	downloadedFilePath := filepath.Join(tempDir, dependencyDir, expectedFileNameOnDisk)
+
+	// 1. Verify downloaded file
+	require.FileExists(t, downloadedFilePath)
+	contentBytes, _ := os.ReadFile(downloadedFilePath)
+	assert.Equal(t, mockContent, string(contentBytes))
+
+	// 2. Verify project.toml
+	projectTomlPath := filepath.Join(tempDir, "project.toml")
+	projCfg := readProjectToml(t, projectTomlPath)
+	depEntry, ok := projCfg.Dependencies[dependencyName]
+	require.True(t, ok, "Dependency entry not found in project.toml")
+
+	// The canonical source should be github:ghowner/ghrepo/mylib.lua@commitabc...
+	expectedCanonicalSource := fmt.Sprintf("github:ghowner/ghrepo/mylib.lua@%s", directCommitSHA)
+	assert.Equal(t, expectedCanonicalSource, depEntry.Source)
+	assert.Equal(t, filepath.ToSlash(filepath.Join(dependencyDir, expectedFileNameOnDisk)), depEntry.Path)
+
+	// 3. Verify almd-lock.toml
+	lockFilePath := filepath.Join(tempDir, "almd-lock.toml")
+	require.FileExists(t, lockFilePath)
+	lockCfg := readAlmdLockToml(t, lockFilePath)
+	lockPkgEntry, ok := lockCfg.Package[dependencyName]
+	require.True(t, ok, "Package entry not found in almd-lock.toml")
+
+	// The source in lockfile should be the exact download URL used
+	assert.Equal(t, dependencyURL, lockPkgEntry.Source)
+	assert.Equal(t, filepath.ToSlash(filepath.Join(dependencyDir, expectedFileNameOnDisk)), lockPkgEntry.Path)
+
+	// Hash should be commit:<commit_sha>
+	expectedHashWithCommit := "commit:" + directCommitSHA
+	assert.Equal(t, expectedHashWithCommit, lockPkgEntry.Hash, "Package hash mismatch in almd-lock.toml (direct commit hash)")
+}
+
+func TestAddCommand_DownloadFailure(t *testing.T) {
+	// --- Test Setup ---
+	// This test implements Task 3.4.5
+	initialTomlContent := `
+[package]
+name = "test-download-fail"
+version = "0.1.0"
+`
+	tempDir := setupAddTestEnvironment(t, initialTomlContent)
+	initialProjectTomlBytes, err := os.ReadFile(filepath.Join(tempDir, "project.toml"))
+	require.NoError(t, err, "Failed to read initial project.toml for comparison")
+
+	// mockErrorURLPath := "/some/failing/file.lua" // Original problematic path
+	mockErrorURLPath := "/testowner/testrepo/testref/failingfile.lua" // Corrected path format
+	pathResps := map[string]struct {
+		Body string
+		Code int
+	}{
+		mockErrorURLPath: {Body: "Not Found", Code: http.StatusNotFound},
+	}
+	mockServer := startMockServer(t, pathResps)
+
+	dependencyURL := mockServer.URL + mockErrorURLPath
+	dependencyName := "failinglib"
+	// Use a specific file name for clarity in assertion, and to match URL extension if name inference were used.
+	expectedFileName := dependencyName + ".lua"
+	expectedFilePath := filepath.Join(tempDir, "libs", expectedFileName) // Default dir is libs/
+
+	// --- Run Command ---
+	cmdErr := runAddCommand(t, tempDir,
+		"-n", dependencyName,
+		dependencyURL,
+	)
+
+	// --- Assertions ---
+	// 1. Verify command returns an error
+	require.Error(t, cmdErr, "almd add command should have failed due to download error")
+	// Check for a more specific error message related to download failure or HTTP status.
+	// The actual error message might be "failed to download file: server returned status 404 Not Found" or similar.
+	assert.Contains(t, strings.ToLower(cmdErr.Error()), "failed to download from", "Error message should indicate download failure")
+	assert.Contains(t, cmdErr.Error(), "404", "Error message should indicate the HTTP status code 404")
+
+	// 2. Verify no dependency file is created
+	_, statErr := os.Stat(expectedFilePath)
+	assert.True(t, os.IsNotExist(statErr), "Dependency file should not have been created: %s", expectedFilePath)
+
+	// 3. Verify project.toml is not modified
+	currentProjectTomlBytes, err := os.ReadFile(filepath.Join(tempDir, "project.toml"))
+	require.NoError(t, err, "Failed to read project.toml after command execution")
+	assert.Equal(t, string(initialProjectTomlBytes), string(currentProjectTomlBytes), "project.toml should not have been modified")
+
+	// 4. Verify almd-lock.toml is not created
+	lockFilePath := filepath.Join(tempDir, "almd-lock.toml")
+	_, statErr = os.Stat(lockFilePath)
+	assert.True(t, os.IsNotExist(statErr), "almd-lock.toml should not have been created: %s", lockFilePath)
+}
+
+// TODO: Task 3.4.6: Test 'almd add' - Error: project.toml Not Found
+// TODO: Task 3.4.7: Test 'almd add' - Cleanup on Failure (e.g., Lockfile Write Error)

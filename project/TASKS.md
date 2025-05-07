@@ -199,11 +199,11 @@
         -   [x] URL can include a commit hash segment (e.g., `file.lua@commitsha`) or a branch/tag name (e.g., `file.lua@main`).
         -   [x] Verify `almd-lock.toml` `hash` field reflects `commit:<actual_commit_sha>`. If original URL was a branch/tag, it's resolved to the latest commit SHA for that file on that branch/tag. If original URL was a commit SHA, that SHA is used.
         -   [x] If GitHub API call fails to resolve a branch/tag, or if not a GitHub URL, verify fallback to `sha256:<content_hash>`.
-    -   [ ] **Sub-Task 3.4.5: Test `almd add` - Error: Download Failure (HTTP Error)**
-        -   [ ] Mock server returns non-200 status.
-        -   [ ] Verify command returns an error.
-        -   [ ] Verify no dependency file is created.
-        -   [ ] Verify `project.toml` and `almd-lock.toml` are not modified (or created if they didn't exist).
+    -   [x] **Sub-Task 3.4.5: Test `almd add` - Error: Download Failure (HTTP Error)**
+        -   [x] Mock server returns non-200 status.
+        -   [x] Verify command returns an error.
+        -   [x] Verify no dependency file is created.
+        -   [x] Verify `project.toml` and `almd-lock.toml` are not modified (or created if they didn't exist).
     -   [ ] **Sub-Task 3.4.6: Test `almd add` - Error: `project.toml` Not Found**
         -   [ ] Run `add` in a temp dir without `project.toml`.
         -   [ ] Verify command returns an appropriate error.
