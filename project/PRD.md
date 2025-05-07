@@ -29,7 +29,7 @@ Almandine (`almd` as the CLI command) is a lightweight package manager for Go pr
         -   **Script Definition:** Interactively prompts the user to add scripts ([`scripts`] table).
             -   Prompts for script `name` and `command`.
             -   Continues prompting until an empty name is entered.
-            -   **Default `run` script:** If no `run` script is provided by the user, adds a default (e.g., `go run .` or `go run main.go`).
+            -   **Default `run` script:** If no `run` script is provided by the user, adds a default (e.g., `lua src/main.lua`).
         -   **Dependency Placeholders (Simplified):** Interactively prompts the user to add initial dependencies ([`dependencies`] table).
             -   Prompts for dependency `name` and a simple `source/version` string.
             -   Continues prompting until an empty name is entered.

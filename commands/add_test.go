@@ -1,6 +1,7 @@
 package commands_test
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -71,20 +72,32 @@ func runAddCommand(t *testing.T, workDir string, addCmdArgs ...string) error {
 	return app.Run(cliArgs)
 }
 
-// startMockServer starts an httptest.Server that serves a specific responseBody
-// for a given expectedPath, with a defined statusCode.
+// startMockServer starts an httptest.Server that serves specific responses
+// for a map of expected paths.
 // Other paths will result in a 404.
-func startMockServer(t *testing.T, expectedPath string, responseBody string, statusCode int) *httptest.Server {
+func startMockServer(t *testing.T, pathResponses map[string]struct {
+	Body string
+	Code int
+}) *httptest.Server {
 	t.Helper()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet && r.URL.Path == expectedPath {
-			w.WriteHeader(statusCode)
-			_, err := w.Write([]byte(responseBody))
-			assert.NoError(t, err, "Mock server failed to write response body")
-		} else {
-			// t.Logf("Mock server: unexpected request: Method %s, Path %s (expected GET %s)", r.Method, r.URL.Path, expectedPath)
-			http.NotFound(w, r)
+		// Construct path with query for matching, as GitHub API calls include queries.
+		requestPathWithQuery := r.URL.Path
+		if r.URL.RawQuery != "" {
+			requestPathWithQuery += "?" + r.URL.RawQuery
 		}
+
+		for path, response := range pathResponses {
+			// Allow simple path match or path with query match
+			if r.Method == http.MethodGet && (r.URL.Path == path || requestPathWithQuery == path) {
+				w.WriteHeader(response.Code)
+				_, err := w.Write([]byte(response.Body))
+				assert.NoError(t, err, "Mock server failed to write response body for path: %s", path)
+				return
+			}
+		}
+		t.Logf("Mock server: unexpected request: Method %s, Path %s, Query %s", r.Method, r.URL.Path, r.URL.RawQuery)
+		http.NotFound(w, r)
 	}))
 	t.Cleanup(server.Close) // Ensure server is closed after the test
 	return server
@@ -127,11 +140,27 @@ version = "0.1.0"
 	mockContent := "// This is a mock lua library content\nlocal lib = {}\nfunction lib.hello() print('hello from lua lib') end\nreturn lib\n"
 	// Adjust mockServerPath to fit the expected /<owner>/<repo>/<ref>/<file...> structure
 	// and use .lua extension as requested.
-	mockServerPath := "/testowner/testrepo/v1.0.0/mylib_script.lua"
-	mockServer := startMockServer(t, mockServerPath, mockContent, http.StatusOK)
-	// server.Close() is handled by t.Cleanup in startMockServer
+	mockFileURLPath := "/testowner/testrepo/v1.0.0/mylib_script.lua"
+	mockCommitSHA := "fixedmockshaforexplicittest1234567890"
+	// Path for the GetLatestCommitSHAForFile call (matches what GetLatestCommitSHAForFile constructs)
+	mockAPIPathForCommits := fmt.Sprintf("/repos/%s/%s/commits?path=%s&sha=%s&per_page=1", "testowner", "testrepo", "mylib_script.lua", "v1.0.0")
+	mockAPIResponseBody := fmt.Sprintf(`[{"sha": "%s"}]`, mockCommitSHA)
 
-	dependencyURL := mockServer.URL + mockServerPath
+	pathResps := map[string]struct {
+		Body string
+		Code int
+	}{
+		mockFileURLPath:       {Body: mockContent, Code: http.StatusOK},
+		mockAPIPathForCommits: {Body: mockAPIResponseBody, Code: http.StatusOK},
+	}
+	mockServer := startMockServer(t, pathResps)
+
+	// IMPORTANT: Override GithubAPIBaseURL to point to our mock server for this test
+	originalGHAPIBaseURL := source.GithubAPIBaseURL
+	source.GithubAPIBaseURL = mockServer.URL
+	defer func() { source.GithubAPIBaseURL = originalGHAPIBaseURL }()
+
+	dependencyURL := mockServer.URL + mockFileURLPath
 	dependencyName := "mylib"        // As per Task 3.4.2
 	dependencyDir := "vendor/custom" // As per Task 3.4.2
 
@@ -148,7 +177,7 @@ version = "0.1.0"
 	// 1. Verify downloaded file content and path
 	// The filename should be the explicit name + extension from source URL path,
 	// based on the observed behavior of the `add` command.
-	extractedSourceFileExtension := filepath.Ext(mockServerPath)            // .lua
+	extractedSourceFileExtension := filepath.Ext(mockFileURLPath)           // .lua
 	expectedFileNameOnDisk := dependencyName + extractedSourceFileExtension // mylib.lua
 
 	downloadedFilePath := filepath.Join(tempDir, dependencyDir, expectedFileNameOnDisk)
@@ -185,8 +214,8 @@ version = "0.1.0"
 	assert.Equal(t, dependencyURL, lockPkgEntry.Source, "Package source mismatch in almd-lock.toml (raw URL)")
 	assert.Equal(t, filepath.ToSlash(filepath.Join(dependencyDir, expectedFileNameOnDisk)), lockPkgEntry.Path, "Package path mismatch in almd-lock.toml")
 
-	// Hash should now reflect the extracted git reference from the mockServerPath.
-	expectedHash := "github:v1.0.0" // Extracted from "/testowner/testrepo/v1.0.0/mylib_script.lua"
+	// Hash should now reflect the commit SHA from the mocked API call.
+	expectedHash := "commit:" + mockCommitSHA
 	assert.Equal(t, expectedHash, lockPkgEntry.Hash, "Package hash mismatch in almd-lock.toml")
 }
 
@@ -203,10 +232,26 @@ version = "0.1.0"
 	mockContent := "// This is a mock lua library for inferred name test\nlocal lib = {}\nreturn lib\n"
 	// Adjust mockServerPath to fit the expected /<owner>/<repo>/<ref>/<file...> structure
 	// for the test mode URL parser.
-	mockServerPath := "/inferredowner/inferredrepo/mainbranch/test_dependency_file.lua"
-	mockServer := startMockServer(t, mockServerPath, mockContent, http.StatusOK)
+	mockFileURLPath_Inferred := "/inferredowner/inferredrepo/mainbranch/test_dependency_file.lua"
+	mockCommitSHA_Inferred := "fixedmockshaforinferredtest1234567890"
+	mockAPIPathForCommits_Inferred := fmt.Sprintf("/repos/%s/%s/commits?path=%s&sha=%s&per_page=1", "inferredowner", "inferredrepo", "test_dependency_file.lua", "mainbranch")
+	mockAPIResponseBody_Inferred := fmt.Sprintf(`[{"sha": "%s"}]`, mockCommitSHA_Inferred)
 
-	dependencyURL := mockServer.URL + mockServerPath
+	pathResps_Inferred := map[string]struct {
+		Body string
+		Code int
+	}{
+		mockFileURLPath_Inferred:       {Body: mockContent, Code: http.StatusOK},
+		mockAPIPathForCommits_Inferred: {Body: mockAPIResponseBody_Inferred, Code: http.StatusOK},
+	}
+	mockServer := startMockServer(t, pathResps_Inferred)
+
+	// IMPORTANT: Override GithubAPIBaseURL to point to our mock server for this test
+	originalGHAPIBaseURL_Inferred := source.GithubAPIBaseURL
+	source.GithubAPIBaseURL = mockServer.URL
+	defer func() { source.GithubAPIBaseURL = originalGHAPIBaseURL_Inferred }()
+
+	dependencyURL := mockServer.URL + mockFileURLPath_Inferred
 
 	// --- Run Command ---
 	// No -n (name) or -d (directory) flags, testing inference and defaults
@@ -216,7 +261,7 @@ version = "0.1.0"
 	// --- Assertions ---
 
 	// 1. Verify downloaded file content and path (inferred name, default directory)
-	sourceFileName := filepath.Base(mockServerPath)                                     // "test_dependency_file.lua"
+	sourceFileName := filepath.Base(mockFileURLPath_Inferred)                           // "test_dependency_file.lua"
 	inferredDepName := strings.TrimSuffix(sourceFileName, filepath.Ext(sourceFileName)) // "test_dependency_file"
 
 	expectedDiskFileName := sourceFileName // "test_dependency_file.lua"
@@ -258,7 +303,7 @@ version = "0.1.0"
 	assert.Equal(t, dependencyURL, lockPkgEntry.Source, "Package source mismatch in almd-lock.toml (raw URL)")
 	assert.Equal(t, expectedPathInToml, lockPkgEntry.Path, "Package path mismatch in almd-lock.toml")
 
-	// Hash should reflect the extracted git reference from the mockServerPath due to test mode parsing.
-	expectedHashLockfile := "github:mainbranch"
-	assert.Equal(t, expectedHashLockfile, lockPkgEntry.Hash, "Package hash mismatch in almd-lock.toml")
+	// Hash should now reflect the commit SHA from the mocked API call.
+	expectedHash := "commit:" + mockCommitSHA_Inferred
+	assert.Equal(t, expectedHash, lockPkgEntry.Hash, "Package hash mismatch in almd-lock.toml")
 }

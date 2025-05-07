@@ -117,19 +117,9 @@ func GetInitCommand() *cli.Command {
 			}
 
 			if _, exists := scripts["run"]; !exists {
-				scripts["run"] = "go run main.go"
-				fmt.Println("Default 'run' script ('go run main.go') added.")
+				scripts["run"] = "lua src/main.lua"
 			}
 
-			fmt.Println("\n--- Collected Scripts ---")
-			if len(scripts) > 0 {
-				for name, cmd := range scripts {
-					fmt.Printf("%s = \"%s\"\n", name, cmd)
-				}
-			} else {
-				// This case should ideally not be hit due to default run script
-				fmt.Println("(No scripts defined)")
-			}
 			fmt.Println("-------------------------")
 
 			// --- Task 1.4: Implement Interactive Prompts for Dependencies (Placeholders) ---

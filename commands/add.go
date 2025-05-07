@@ -241,12 +241,51 @@ var AddCommand = &cli.Command{
 			return cli.Exit(fmt.Sprintf("Error %s. File '%s' saved and %s updated, but lockfile operation failed. %s and %s may be inconsistent. Downloaded file '%s' is being cleaned up.", err, fullPath, config.ProjectTomlName, config.ProjectTomlName, lockfile.LockfileName, fullPath), 1)
 		}
 
-		// Determine integrity hash: github:<commit_hash> or sha256:<hash>
+		// Determine integrity hash: commit:<commit_hash> or sha256:<hash>
 		var integrityHash string
-		if parsedInfo.Provider == "github" && parsedInfo.Ref != "" && !strings.HasPrefix(parsedInfo.Ref, "error:") { // Ensure Ref is not an error placeholder
-			integrityHash = fmt.Sprintf("github:%s", parsedInfo.Ref)
+		isLikelyCommitSHA := func(ref string) bool {
+			if len(ref) != 40 { // Standard Git SHA-1 length
+				return false
+			}
+			for _, r := range ref {
+				if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')) {
+					return false
+				}
+			}
+			return true
+		}
+
+		if parsedInfo.Provider == "github" && parsedInfo.Owner != "" && parsedInfo.Repo != "" && parsedInfo.PathInRepo != "" && parsedInfo.Ref != "" && !strings.HasPrefix(parsedInfo.Ref, "error:") {
+			if isLikelyCommitSHA(parsedInfo.Ref) {
+				if verbose {
+					fmt.Printf("Using provided ref '%s' as commit SHA for lockfile hash.\\n", parsedInfo.Ref)
+				}
+				integrityHash = fmt.Sprintf("commit:%s", parsedInfo.Ref)
+			} else {
+				// Ref is likely a branch or tag, try to get the specific commit SHA
+				if verbose {
+					fmt.Printf("Attempting to resolve ref '%s' to a specific commit SHA for path '%s' in repo '%s/%s'...\\n", parsedInfo.Ref, parsedInfo.PathInRepo, parsedInfo.Owner, parsedInfo.Repo)
+				}
+				commitSHA, err := source.GetLatestCommitSHAForFile(parsedInfo.Owner, parsedInfo.Repo, parsedInfo.PathInRepo, parsedInfo.Ref)
+				if err != nil {
+					if verbose {
+						fmt.Printf("Warning: Failed to get specific commit SHA for '%s@%s': %v. Falling back to SHA256 content hash for lockfile.\\n", parsedInfo.PathInRepo, parsedInfo.Ref, err)
+					}
+					integrityHash = fileHashSHA256
+				} else {
+					if verbose {
+						fmt.Printf("Successfully resolved ref '%s' to commit SHA '%s'.\\n", parsedInfo.Ref, commitSHA)
+					}
+					integrityHash = fmt.Sprintf("commit:%s", commitSHA)
+				}
+			}
 		} else {
-			integrityHash = fileHashSHA256 // Fallback to SHA256 if no valid Git ref
+			if verbose && parsedInfo.Provider == "github" {
+				fmt.Printf("Insufficient information or invalid ref ('%s') to fetch specific commit SHA for GitHub source. Falling back to SHA256 content hash for lockfile.\\n", parsedInfo.Ref)
+			} else if verbose {
+				fmt.Printf("Source is not GitHub or ref is missing. Falling back to SHA256 content hash for lockfile.\\n")
+			}
+			integrityHash = fileHashSHA256 // Fallback to SHA256
 		}
 
 		// For lockfile, use the exact raw download URL and calculated integrity hash

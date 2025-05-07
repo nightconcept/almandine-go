@@ -65,8 +65,6 @@ func TestInitCommand(t *testing.T) {
 		"1.2.3",                // Version
 		"Apache-2.0",           // License
 		"A test project",       // Description
-		"build",                // Script name 1
-		"go build .",           // Script cmd 1
 		"",                     // Empty script name (finish scripts)
 		"my-dep",               // Dependency name 1
 		"github.com/user/repo", // Dependency source 1
@@ -121,8 +119,7 @@ func TestInitCommand(t *testing.T) {
 
 	// Verify Scripts (should include the default 'run' and the provided 'build')
 	expectedScripts := map[string]string{
-		"run":   "go run main.go",
-		"build": "go build .",
+		"run": "lua src/main.lua",
 	}
 	assert.Equal(t, expectedScripts, generatedConfig.Scripts, "Scripts mismatch")
 
@@ -204,7 +201,7 @@ func TestInitCommand_DefaultsAndEmpty(t *testing.T) {
 
 	// Verify Scripts (should only include the default 'run')
 	expectedScripts := map[string]string{
-		"run": "go run main.go",
+		"run": "lua src/main.lua",
 	}
 	assert.Equal(t, expectedScripts, generatedConfig.Scripts, "Scripts mismatch (only default expected)")
 

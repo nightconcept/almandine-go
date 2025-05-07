@@ -64,7 +64,7 @@
     -   [x] Add logic to loop, prompting for script `name` and `command`.
     -   [x] Store collected scripts (e.g., in a `map[string]string`).
     -   [x] Exit the loop when an empty script name is entered.
-    -   [x] Implement logic to add a default `run` script (`go run .` or `go run main.go`) if the user doesn't define one.
+    -   [x] Implement logic to add a default `run` script (`lua src/main.lua`) if the user doesn't define one.
     -   [x] Manual Verification: Run `almd init` interactively, add a few scripts, skip adding `run`, and verify the default is included conceptually (actual file writing is next).
 
 -   [x] **Task 1.4: Implement Interactive Prompts for Dependencies (Placeholders)**
@@ -167,11 +167,11 @@
     -   [x] Setup/Teardown: Tests will create temporary directories and necessary initial files (e.g., `project.toml`), and these will be cleaned up automatically by `t.TempDir()` or explicit `defer os.RemoveAll`.
     -   [x] Manual Verification: Review the chosen strategy for feasibility.
 
--   [ ] **Task 3.2: Create Test File Structure**
+-   [x] **Task 3.2: Create Test File Structure**
     -   [x] Test file for `init` command: `commands/init_test.go` (exists).
-    -   [ ] Create test file for `add` command: `commands/add_test.go`.
-    -   [ ] Implement shared test helpers if applicable (e.g., for creating temp env, running command actions).
-    -   [ ] Manual Verification: Run `go test ./...` and confirm test files are picked up.
+    -   [x] Create test file for `add` command: `commands/add_test.go`.
+    -   [x] Implement shared test helpers if applicable (e.g., for creating temp env, running command actions).
+    -   [x] Manual Verification: Run `go test ./...` and confirm test files are picked up.
 
 -   [ ] **Task 3.3: Implement `init` Command Test Cases (Existing)**
     -   [x] Basic `init` test case (as in `commands/init_test.go`).
@@ -195,9 +195,10 @@
         -   [x] Verify:
             -   `libs/file.lua` (or project root, per PRD) created.
             -   Manifest and lockfile updated with inferred name `file.sh`.
-    -   [ ] **Sub-Task 3.4.4: Test `almd add` - GitHub URL with Commit Hash**
-        -   [ ] URL should include a commit hash segment.
-        -   [ ] Verify `almd-lock.toml` `hash` field reflects `commit:<hash>` if source handler extracts it, otherwise SHA256 of content. (PRD implies `hash` is the integrity string, so `commit:<hash_val>` or `sha256:<hash_val>`).
+    -   [x] **Sub-Task 3.4.4: Test `almd add` - GitHub URL with Commit Hash**
+        -   [x] URL can include a commit hash segment (e.g., `file.lua@commitsha`) or a branch/tag name (e.g., `file.lua@main`).
+        -   [x] Verify `almd-lock.toml` `hash` field reflects `commit:<actual_commit_sha>`. If original URL was a branch/tag, it's resolved to the latest commit SHA for that file on that branch/tag. If original URL was a commit SHA, that SHA is used.
+        -   [x] If GitHub API call fails to resolve a branch/tag, or if not a GitHub URL, verify fallback to `sha256:<content_hash>`.
     -   [ ] **Sub-Task 3.4.5: Test `almd add` - Error: Download Failure (HTTP Error)**
         -   [ ] Mock server returns non-200 status.
         -   [ ] Verify command returns an error.
