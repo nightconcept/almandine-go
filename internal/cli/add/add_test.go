@@ -1,4 +1,4 @@
-package commands_test
+package add
 
 import (
 	"fmt"
@@ -10,10 +10,9 @@ import (
 	"testing"
 
 	"github.com/BurntSushi/toml"
-	"github.com/nightconcept/almandine-go/commands"
-	"github.com/nightconcept/almandine-go/internal/config"
-	"github.com/nightconcept/almandine-go/internal/project"
-	"github.com/nightconcept/almandine-go/internal/source"
+	"github.com/nightconcept/almandine-go/internal/core/config"
+	"github.com/nightconcept/almandine-go/internal/core/project"
+	"github.com/nightconcept/almandine-go/internal/core/source"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
@@ -56,7 +55,7 @@ func runAddCommand(t *testing.T, workDir string, addCmdArgs ...string) error {
 	app := &cli.App{
 		Name: "almd-test-add",
 		Commands: []*cli.Command{
-			commands.AddCommand,
+			AddCommand,
 		},
 		// Suppress help printer during tests unless specifically testing help output
 		Writer:    os.Stderr, // Default, or io.Discard for cleaner test logs

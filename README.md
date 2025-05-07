@@ -49,7 +49,15 @@ golangci-lint run
 Builds the `almd` binary.
 
 ```sh
-go build -o almd .
+go build -o build/almd ./cmd/almd
+```
+
+### test
+
+Run tests.
+
+```sh
+go test ./internal/cli
 ```
 
 ---

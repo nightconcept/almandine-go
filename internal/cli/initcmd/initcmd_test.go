@@ -1,5 +1,5 @@
 // Package commands_test contains tests for the commands package.
-package commands_test
+package initcmd
 
 import (
 	"bytes"
@@ -9,8 +9,7 @@ import (
 	"testing"
 
 	"github.com/BurntSushi/toml"
-	"github.com/nightconcept/almandine-go/commands"
-	"github.com/nightconcept/almandine-go/internal/project"
+	"github.com/nightconcept/almandine-go/internal/core/project"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
@@ -89,7 +88,7 @@ func TestInitCommand(t *testing.T) {
 	app := &cli.App{
 		Name: "almandine-test",
 		Commands: []*cli.Command{
-			commands.GetInitCommand(),
+			GetInitCommand(),
 		},
 	}
 
@@ -177,7 +176,7 @@ func TestInitCommand_DefaultsAndEmpty(t *testing.T) {
 	app := &cli.App{
 		Name: "almandine-test",
 		Commands: []*cli.Command{
-			commands.GetInitCommand(),
+			GetInitCommand(),
 		},
 	}
 	runErr := app.Run([]string{"almandine-test", "init"})

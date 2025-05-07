@@ -5,6 +5,6 @@ devenv.local.nix
 # direnv
 .direnv
 
-almd
 project.toml
 almd-lock.toml
+build/almd

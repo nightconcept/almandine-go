@@ -82,25 +82,44 @@ Almandine (`almd` as the CLI command) is a lightweight package manager for Go pr
 
 Standard Go project layout combined with Almandine specifics:
 
--   `project.toml`       # Default project manifest filename (can be overridden via flag?)
--   `almd-lock.toml`     # Default lockfile filename
--   `go.mod`               # Go module definition
--   `go.sum`               # Go module checksums
--   `main.go`              # Main application entry point (configures and runs the `urfave/cli` App)
--   `commands/`            # `urfave/cli` command definitions (optional structure, could be flat in `main.go` for simple cases)
-    -   `add.go`           # `almd add` command logic/definition
-    -   `...`              # Other commands (e.g., `init.go`, `remove.go`)
--   `internal/`            # Internal Go packages (not intended for import by other projects)
-    -   `config/`          # Loading/parsing/updating `project.toml`
-    -   `lockfile/`        # Loading/parsing/updating `almd-lock.toml`
-    -   `downloader/`      # File downloading logic
-    -   `hasher/`          # Content hashing logic (sha256)
-    -   `project/`         # Go structs representing project/lockfile data models
-    -   `source/`          # Handling source URL parsing, normalization, identifier creation (e.g., GitHub logic)
-    -   `util/`            # General utility functions (e.g., path manipulation)
-    -   `...`              # Other internal helpers
--   `scripts/`             # (Optional) Project scripts referenced in `project.toml`
--   `lib/`                 # (Optional) Default directory for downloaded dependencies
+-   `project.toml`       # Default project manifest filename for projects using Almandine
+-   `almd-lock.toml`     # Default lockfile filename for projects using Almandine
+-   `go.mod`               # Go module definition for Almandine tool
+-   `go.sum`               # Go module checksums for Almandine tool
+-   `README.md`            # Project README for Almandine development
+-   `.github/`             # GitHub-specific files (workflows, issue templates, etc.)
+-   `cmd/`                 # Main applications for the project
+    -   `almd/`            # The Almandine CLI application (assuming CLI command is 'almd')
+        -   `main.go`      # Main entry point, CLI argument parsing, command dispatch
+-   `internal/`            # Private application and library code (not for external import)
+    -   `cli/`             # CLI command logic and definitions
+        -   `add/`         # Logic for the 'add' command (package add)
+            -   `add.go`
+        -   `initcmd/`     # Logic for the 'init' command (package initcmd)
+            -   `initcmd.go`
+        -   `remove/`      # Logic for the 'remove' command (package remove)
+            -   `remove.go`
+        -   `...`          # Other command packages/modules
+    -   `core/`            # Core application logic (business logic)
+        -   `config/`      # Loading, parsing, and updating `project.toml`
+        -   `lockfile/`    # Loading, parsing, and updating `almd-lock.toml`
+        -   `downloader/`  # File downloading logic
+        -   `hasher/`      # Content hashing logic (e.g., SHA256)
+        -   `project/`     # Go structs representing project/lockfile data models
+        -   `source/`      # Handling source URL parsing, normalization, identifier creation
+    -   `util/`            # General utility functions shared across internal packages
+-   `pkg/`                 # Public library code, reusable by other projects (if any - initially empty)
+    -   `...`              # Example: `pkg/somepublicapi/`
+-   `scripts/`             # Scripts for building, installing, analyzing the Almandine tool itself (e.g., `build.sh`, `install.sh`)
+-   `configs/`             # Configuration files for the Almandine tool (e.g., for different environments - placeholder)
+-   `docs/`                # Almandine tool's own documentation (user guides, design documents, PRD, etc.)
+-   `test/`                # Additional tests (e.g., E2E, integration) and test data
+    -   `e2e/`             # End-to-end tests
+    -   `data/`            # Test data, fixtures (optional)
+
+The directory `lib/` (mentioned in the previous structure) is not part of the Almandine tool's own source code structure. It typically refers to the default output directory within a *user's project* where Almandine might download dependencies (e.g., `src/lib/` or a user-configured path).
+
+Unit tests (e.g., `foo_test.go`) should be co-located with the Go source files they test (e.g., in the same package/directory like `internal/core/config/config_test.go`). The top-level `test/` directory is for tests that span multiple packages or require specific data/environments (e.g., end-to-end tests).
 
 ## 3.1 Example Lua Project Structure (Using Almandine)
 

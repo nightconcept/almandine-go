@@ -1,4 +1,4 @@
-package commands
+package add
 
 import (
 	"fmt"
@@ -7,12 +7,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/nightconcept/almandine-go/internal/config"
-	"github.com/nightconcept/almandine-go/internal/downloader"
-	"github.com/nightconcept/almandine-go/internal/hasher"
-	"github.com/nightconcept/almandine-go/internal/lockfile"
-	"github.com/nightconcept/almandine-go/internal/project"
-	"github.com/nightconcept/almandine-go/internal/source"
+	"github.com/nightconcept/almandine-go/internal/core/config"
+	"github.com/nightconcept/almandine-go/internal/core/downloader"
+	"github.com/nightconcept/almandine-go/internal/core/hasher"
+	"github.com/nightconcept/almandine-go/internal/core/lockfile"
+	"github.com/nightconcept/almandine-go/internal/core/project"
+	"github.com/nightconcept/almandine-go/internal/core/source"
 	"github.com/urfave/cli/v2"
 )
 

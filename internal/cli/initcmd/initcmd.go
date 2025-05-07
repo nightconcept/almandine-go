@@ -1,5 +1,5 @@
 // Package commands contains the definitions for the almd CLI commands.
-package commands
+package initcmd
 
 import (
 	"bufio"
@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	// "github.com/BurntSushi/toml" // No longer directly used here
-	"github.com/nightconcept/almandine-go/internal/config"
-	"github.com/nightconcept/almandine-go/internal/project"
+	"github.com/nightconcept/almandine-go/internal/core/config"
+	"github.com/nightconcept/almandine-go/internal/core/project"
 	"github.com/urfave/cli/v2"
 )
 

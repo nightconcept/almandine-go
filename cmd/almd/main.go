@@ -10,7 +10,8 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/nightconcept/almandine-go/commands"
+	"github.com/nightconcept/almandine-go/internal/cli/add"
+	"github.com/nightconcept/almandine-go/internal/cli/initcmd"
 )
 
 // The main function, where the program execution begins.
@@ -25,8 +26,8 @@ func main() {
 			return nil
 		},
 		Commands: []*cli.Command{
-			commands.GetInitCommand(),
-			commands.AddCommand,
+			initcmd.GetInitCommand(),
+			add.AddCommand,
 		},
 	}
 

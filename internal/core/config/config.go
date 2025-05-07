@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
-	"github.com/nightconcept/almandine-go/internal/project" // Corrected module path
+	"github.com/nightconcept/almandine-go/internal/core/project" // Corrected module path
 )
 
 const ProjectTomlName = "project.toml"
