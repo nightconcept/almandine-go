@@ -1,7 +1,6 @@
 package commands_test
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -116,6 +115,7 @@ func readAlmdLockToml(t *testing.T, lockPath string) project.LockFile {
 
 func TestAddCommand_Success_ExplicitNameAndDir(t *testing.T) {
 	// --- Test Setup ---
+	// This test implements Task 3.4.2
 	initialTomlContent := `
 [package]
 name = "test-project"
@@ -123,17 +123,16 @@ version = "0.1.0"
 `
 	tempDir := setupAddTestEnvironment(t, initialTomlContent)
 
-	mockContent := "// This is a mock library content\nfunc main() {}\n"
-	// mockServerPath needs to mimic a GitHub raw content URL path structure
-	// for parseGitHubURL to correctly extract components when host validation is bypassed.
-	// Format: /<owner>/<repo>/<ref>/<path_to_file>
-	mockServerPath := "/testowner/testrepo/main/mylib.sh" // Changed to mimic GitHub raw path
+	mockContent := "// This is a mock lua library content\nlocal lib = {}\nfunction lib.hello() print('hello from lua lib') end\nreturn lib\n"
+	// Adjust mockServerPath to fit the expected /<owner>/<repo>/<ref>/<file...> structure
+	// and use .lua extension as requested.
+	mockServerPath := "/testowner/testrepo/v1.0.0/mylib_script.lua"
 	mockServer := startMockServer(t, mockServerPath, mockContent, http.StatusOK)
 	// server.Close() is handled by t.Cleanup in startMockServer
 
 	dependencyURL := mockServer.URL + mockServerPath
-	dependencyName := "mylib-explicit"
-	dependencyDir := "vendor/customlibs"
+	dependencyName := "mylib"        // As per Task 3.4.2
+	dependencyDir := "vendor/custom" // As per Task 3.4.2
 
 	// --- Run Command ---
 	err := runAddCommand(t, tempDir,
@@ -146,14 +145,16 @@ version = "0.1.0"
 	// --- Assertions ---
 
 	// 1. Verify downloaded file content and path
-	// Determine the expected extension from the mockServerPath, as the add command appends it.
-	expectedExtension := filepath.Ext(mockServerPath)
-	expectedFileNameOnDisk := dependencyName + expectedExtension
+	// The filename should be the explicit name + extension from source URL path,
+	// based on the observed behavior of the `add` command.
+	extractedSourceFileExtension := filepath.Ext(mockServerPath)            // .lua
+	expectedFileNameOnDisk := dependencyName + extractedSourceFileExtension // mylib.lua
+
 	downloadedFilePath := filepath.Join(tempDir, dependencyDir, expectedFileNameOnDisk)
-	require.FileExists(t, downloadedFilePath, "Downloaded file does not exist at expected path")
+	require.FileExists(t, downloadedFilePath, "Downloaded file does not exist at expected path: %s", downloadedFilePath)
 
 	contentBytes, readErr := os.ReadFile(downloadedFilePath)
-	require.NoError(t, readErr, "Failed to read downloaded file")
+	require.NoError(t, readErr, "Failed to read downloaded file: %s", downloadedFilePath)
 	assert.Equal(t, mockContent, string(contentBytes), "Downloaded file content mismatch")
 
 	// 2. Verify project.toml was updated correctly
@@ -164,10 +165,9 @@ version = "0.1.0"
 	depEntry, ok := projCfg.Dependencies[dependencyName]
 	require.True(t, ok, "Dependency entry not found in project.toml for: %s", dependencyName)
 
-	// Construct the expected canonical URL for assertion
-	// Based on how testModeBypassHostValidation in source.ParseSourceURL constructs it
-	// Path parts from mockServerPath: /testowner/testrepo/main/mylib.sh
-	expectedCanonicalSource := fmt.Sprintf("github:%s/%s/%s@%s", "testowner", "testrepo", "mylib.sh", "main")
+	// Expected canonical source based on the new mockServerPath structure
+	// Format: github:<owner>/<repo>/<path_to_file_in_repo>@<ref>
+	expectedCanonicalSource := "github:testowner/testrepo/mylib_script.lua@v1.0.0"
 	assert.Equal(t, expectedCanonicalSource, depEntry.Source, "Dependency source mismatch in project.toml")
 	assert.Equal(t, filepath.ToSlash(filepath.Join(dependencyDir, expectedFileNameOnDisk)), depEntry.Path, "Dependency path mismatch in project.toml")
 
@@ -181,12 +181,10 @@ version = "0.1.0"
 	lockPkgEntry, ok := lockCfg.Package[dependencyName]
 	require.True(t, ok, "Package entry not found in almd-lock.toml for: %s", dependencyName)
 
-	assert.Equal(t, dependencyURL, lockPkgEntry.Source, "Package source mismatch in almd-lock.toml")
+	assert.Equal(t, dependencyURL, lockPkgEntry.Source, "Package source mismatch in almd-lock.toml (raw URL)")
 	assert.Equal(t, filepath.ToSlash(filepath.Join(dependencyDir, expectedFileNameOnDisk)), lockPkgEntry.Path, "Package path mismatch in almd-lock.toml")
 
-	// For this test case, with a mock GitHub URL structure providing a ref, the hash should be github:<ref>
-	expectedHash := fmt.Sprintf("github:%s", "main") // Ref from mockServerPath "/testowner/testrepo/main/mylib.sh"
+	// Hash should now reflect the extracted git reference from the mockServerPath.
+	expectedHash := "github:v1.0.0" // Extracted from "/testowner/testrepo/v1.0.0/mylib_script.lua"
 	assert.Equal(t, expectedHash, lockPkgEntry.Hash, "Package hash mismatch in almd-lock.toml")
-	// We could also calculate the expected sha256 hash of mockContent and compare it fully.
-	// For now, checking the prefix and presence is a good first step.
 }

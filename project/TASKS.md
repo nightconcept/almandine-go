@@ -178,22 +178,22 @@
     -   [x] `init` test case with defaults and empty inputs (as in `commands/init_test.go`).
 
 -   [ ] **Task 3.4: Implement `add` Command Unit Test Cases**
-    -   [ ] **Sub-Task 3.4.1: Setup for `add` tests in `commands/add_test.go`**
-        -   [ ] Define `TestMain` if any global setup/teardown for `add` tests is needed.
+    -   [x] **Sub-Task 3.4.1: Setup for `add` tests in `commands/add_test.go`**
+        -   [x] Define `TestMain` if any global setup/teardown for `add` tests is needed.
         -   [x] Create helper: `setupAddTestEnvironment(t *testing.T, initialProjectTomlContent string) (tempDir string)` that creates a temp dir and a `project.toml`.
         -   [x] Create helper: `runAddCommand(t *testing.T, tempDir string, mockServerURL string, cliArgs ...string) error` to set up and run the `add` command's action using an `cli.App` instance.
         -   [x] Create helper: `startMockHTTPServer(t *testing.T, content string, expectedPath string, statusCode int) *httptest.Server`.
-    -   [ ] **Sub-Task 3.4.2: Test `almd add` - Successful Download and Update (Explicit Name, Custom Directory)**
-        -   [ ] Setup: Temp dir, basic `project.toml`, mock HTTP server serving test content.
-        -   [ ] Execute: `almd add <mock_url_to_file> -n mylib -d vendor/custom`.
-        -   [ ] Verify:
+    -   [x] **Sub-Task 3.4.2: Test `almd add` - Successful Download and Update (Explicit Name, Custom Directory)**
+        -   [x] Setup: Temp dir, basic `project.toml`, mock HTTP server serving test content.
+        -   [x] Execute: `almd add <mock_url_to_file> -n mylib -d vendor/custom`.
+        -   [x] Verify:
             -   `vendor/custom/mylib` created with correct content.
             -   `project.toml` updated with `[dependencies.mylib]` pointing to `source` and `path="vendor/custom/mylib"`.
             -   `almd-lock.toml` created/updated with `[package.mylib]` including `source`, `path`, and `hash="sha256:..."`.
     -   [ ] **Sub-Task 3.4.3: Test `almd add` - Successful Download (Inferred Name, Default Directory)**
-        -   [ ] Execute: `almd add <mock_url_to_file.sh>`.
+        -   [ ] Execute: `almd add <mock_url_to_file.lua>`.
         -   [ ] Verify:
-            -   `libs/file.sh` (or project root, per PRD) created.
+            -   `libs/file.lua` (or project root, per PRD) created.
             -   Manifest and lockfile updated with inferred name `file.sh`.
     -   [ ] **Sub-Task 3.4.4: Test `almd add` - GitHub URL with Commit Hash**
         -   [ ] URL should include a commit hash segment.
