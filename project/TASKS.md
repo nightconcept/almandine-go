@@ -110,41 +110,41 @@
     -   [x] Return the downloaded content (e.g., as `[]byte`).
     -   [x] Manual Verification: Test the download function with a known raw GitHub file URL. (Code implemented; manual test by user pending integration)
 
--   [ ] **Task 2.4: Implement Target Path Logic & File Saving**
-    -   [ ] Add logic within the `add` command's `Action` (or a helper in `internal/util`) to determine the final destination path based on the `-d` flag, `-n` flag (or inferred name), and the project root.
-    -   [ ] Use `os.MkdirAll` to create the target directory if it doesn't exist.
-    -   [ ] Use `os.WriteFile` (or similar `io` operations) to save the downloaded content (`[]byte` from Task 2.3) to the determined path.
-    -   [ ] Handle file writing errors.
-    -   [ ] Manual Verification: Run `almd add <url>` with different `-d` and `-n` combinations and verify the file is saved to the correct location with the correct name. Test directory creation.
+-   [x] **Task 2.4: Implement Target Path Logic & File Saving**
+    -   [x] Add logic within the `add` command's `Action` to determine the final destination path based on the `-d` flag, `-n` flag (or inferred name), and the project root.
+    -   [x] Use `os.MkdirAll` to create the target directory if it doesn't exist.
+    -   [x] Use `os.WriteFile` to save the downloaded content (`[]byte` from Task 2.3) to the determined path.
+    -   [x] Handle file writing errors.
+    -   [x] Manual Verification: Run `almd add <url>` with different `-d` and `-n` combinations and verify the file is saved to the correct location with the correct name. Test directory creation.
 
--   [ ] **Task 2.5: Implement Hashing (`internal/hasher`)**
-    -   [ ] Create package `internal/hasher`.
-    -   [ ] Implement a function to calculate the SHA256 hash of file content (`[]byte`) using `crypto/sha256`.
-    -   [ ] Format the output hash string as `sha256:<hex_hash>`.
-    -   [ ] Manual Verification: Test the hashing function with known content and verify the output hash.
+-   [x] **Task 2.5: Implement Hashing (`internal/hasher`)**
+    -   [x] Create package `internal/hasher`.
+    -   [x] Implement a function to calculate the SHA256 hash of file content (`[]byte`) using `crypto/sha256`.
+    -   [x] Format the output hash string as `sha256:<hex_hash>`.
+    -   [x] Manual Verification: Test the hashing function with known content and verify the output hash.
 
--   [ ] **Task 2.6: Define Data Structures (`internal/project`)**
-    -   [ ] Extend Go structs in `internal/project/` to represent the `dependencies` table structure in `project.toml` (sub-table with `source`, `path`).
-    -   [ ] Define Go structs for the `almd-lock.toml` structure (`api_version`, `[package]` table with entries containing `source`, `path`, `hash`).
-    -   [ ] Manual Verification: Code review confirms structs accurately model the TOML structures defined in `PRD.md`.
+-   [x] **Task 2.6: Define Data Structures (`internal/project`)**
+    -   [x] Extend Go structs in `internal/project/` to represent the `dependencies` table structure in `project.toml` (sub-table with `source`, `path`).
+    -   [x] Define Go structs for the `almd-lock.toml` structure (`api_version`, `[package]` table with entries containing `source`, `path`, `hash`).
+    -   [x] Manual Verification: Code review confirms structs accurately model the TOML structures defined in `PRD.md`.
 
--   [ ] **Task 2.7: Implement Manifest Update (`internal/config`)**
-    -   [ ] Add functions in `internal/config/` to:
-        -   Load an existing `project.toml`.
-        -   Add or update a dependency entry in the `[dependencies]` map using the dependency name (from `-n` or inferred), canonical source identifier (Task 2.2), and relative file path (Task 2.4).
-        -   Save the updated manifest back to `project.toml`.
-    -   [ ] Integrate this logic into the `add` command's `Action`.
-    -   [ ] Manual Verification: Run `almd add <url>`, then inspect `project.toml` to verify the dependency entry is added/updated correctly.
+-   [x] **Task 2.7: Implement Manifest Update (`internal/config`)**
+    -   [x] Add functions in `internal/config/` to:
+        -   [x] Load an existing `project.toml`.
+        -   [x] Add or update a dependency entry in the `[dependencies]` map using the dependency name (from `-n` or inferred), canonical source identifier (Task 2.2), and relative file path (Task 2.4).
+        -   [x] Save the updated manifest back to `project.toml`.
+    -   [x] Integrate this logic into the `add` command's `Action`.
+    -   [x] Manual Verification: Run `almd add <url>`, then inspect `project.toml` to verify the dependency entry is added/updated correctly.
 
--   [ ] **Task 2.8: Implement Lockfile Update (`internal/lockfile`)**
-    -   [ ] Create package `internal/lockfile`.
-    -   [ ] Add functions to:
-        -   Load `almd-lock.toml` (handling file not found initially).
-        -   Calculate the integrity hash string: `commit:<commit_hash>` (if available from Task 2.2) or `sha256:<hash>` (from Task 2.5). Handle potential hashing errors (`hash_error:<reason>`).
-        -   Add or update an entry in the `[package]` map using the dependency name, the *exact raw download URL* (Task 2.2), the relative file path (Task 2.4), and the calculated hash string.
-        -   Set/ensure `api_version = "1"`.
-        -   Save the updated lockfile back to `almd-lock.toml`.
-    -   [ ] Integrate this logic into the `add` command's `Action`.
+-   [x] **Task 2.8: Implement Lockfile Update (`internal/lockfile`)**
+    -   [x] Create package `internal/lockfile`.
+    -   [x] Add functions to:
+        -   [x] Load `almd-lock.toml` (handling file not found initially).
+        -   [x] Calculate the integrity hash string: `commit:<commit_hash>` (if available from Task 2.2) or `sha256:<hash>` (from Task 2.5). Handle potential hashing errors (`hash_error:<reason>`).
+        -   [x] Add or update an entry in the `[package]` map using the dependency name, the *exact raw download URL* (Task 2.2), the relative file path (Task 2.4), and the calculated hash string.
+        -   [x] Set/ensure `api_version = "1"`.
+        -   [x] Save the updated lockfile back to `almd-lock.toml`.
+    -   [x] Integrate this logic into the `add` command's `Action`.
     -   [ ] Manual Verification: Run `almd add <url>`, then inspect `almd-lock.toml` to verify the entry is added/updated with the correct source URL, path, and hash format.
 
 -   [ ] **Task 2.9: Error Handling and Cleanup**
@@ -186,38 +186,6 @@
     -   [ ] Verify `almd-lock.toml` is created/updated correctly.
     -   [ ] Manual Verification: Run the specific test and confirm it passes and cleans up correctly.
 
-## Milestone 4: Initial E2E Testing Setup (Placeholder)
-
-**Goal:** Establish the basic structure for E2E tests for the `init` and `add` commands. (Detailed test cases TBD).
-
--   [ ] **Task 4.1: Define E2E Testing Strategy**
-    -   [ ] Determine the framework (standard Go `testing` package likely sufficient).
-    -   [ ] Decide on approach:
-        -   Running `almd` as a subprocess (`os/exec`) within test functions.
-        -   Directly calling command `Action` functions (may require refactoring for testability/dependency injection).
-    -   [ ] Plan for handling `init` interactivity (e.g., using input redirection, pre-made config files, or potentially a future non-interactive flag).
-    -   [ ] Plan for handling `add` network calls (e.g., using a mock HTTP server like `net/http/httptest`, or hitting real endpoints for specific test cases).
-    -   [ ] Define setup/teardown logic (creating temporary directories, cleaning up generated files like `project.toml`, `almd-lock.toml`, downloaded libs).
-    -   [ ] Manual Verification: Review the chosen strategy for feasibility.
-
--   [ ] **Task 4.2: Create Test File Structure**
-    -   [ ] Create test files (e.g., `commands/init_test.go`, `commands/add_test.go` or a dedicated `test/e2e/` directory).
-    -   [ ] Implement basic setup/teardown helpers based on the chosen strategy.
-    -   [ ] Manual Verification: Run `go test ./...` and confirm the test files are picked up and basic setup/teardown executes without error.
-
--   [ ] **Task 4.3: Implement Basic `init` Test Case**
-    -   [ ] Add a simple test case that runs `almd init` (using the chosen strategy) in a temporary directory.
-    -   [ ] Verify that `project.toml` is created.
-    -   [ ] (Optional) Perform basic checks on the default content of `project.toml`.
-    -   [ ] Manual Verification: Run the specific test and confirm it passes and cleans up correctly.
-
--   [ ] **Task 4.4: Implement Basic `add` Test Case**
-    -   [ ] Add a simple test case that runs `almd add <test_url>` (using the chosen strategy, potentially with a mock server) in a temporary directory containing a minimal `project.toml`.
-    -   [ ] Verify the dependency file is downloaded to the expected location.
-    -   [ ] Verify `project.toml` is updated correctly.
-    -   [ ] Verify `almd-lock.toml` is created/updated correctly.
-    -   [ ] Manual Verification: Run the specific test and confirm it passes and cleans up correctly.
-
 ---
 
-*This `TASKS.md` outlines the implementation of the core `init` and `add` commands and the initial setup for E2E testing. Further tasks can be added for other commands (`remove`, `install`, `run`), additional features, refactoring, and more comprehensive testing.* 
+*This `TASKS.md` outlines the implementation of the core `init` and `add` commands and the initial setup for E2E testing. Further tasks can be added for other commands (`remove`, `install`, `run`), additional features, refactoring, and more comprehensive testing.*

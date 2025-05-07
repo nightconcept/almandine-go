@@ -8,6 +8,22 @@ import (
 	"github.com/nightconcept/almandine-go/internal/project" // Corrected module path
 )
 
+const ProjectTomlName = "project.toml"
+
+// LoadProjectToml reads the project.toml file from the given filePath and unmarshals it.
+func LoadProjectToml(filePath string) (*project.Project, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var proj project.Project
+	if err := toml.Unmarshal(data, &proj); err != nil {
+		return nil, err
+	}
+	return &proj, nil
+}
+
 // WriteProjectToml marshals the Project data and writes it to the specified filePath.
 // It will overwrite the file if it already exists.
 func WriteProjectToml(filePath string, data *project.Project) error {

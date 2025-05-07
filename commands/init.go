@@ -163,6 +163,15 @@ func GetInitCommand() *cli.Command {
 			}
 			fmt.Println("----------------------------")
 
+			// Transform collected placeholder dependencies into the correct structure
+			projectDependencies := make(map[string]project.Dependency)
+			for name, source := range dependencies {
+				projectDependencies[name] = project.Dependency{
+					Source: source, // The collected placeholder string
+					Path:   "",     // Path is not determined at init for placeholders
+				}
+			}
+
 			// Populate the project structure
 			projectData := project.Project{
 				Package: &project.PackageInfo{
@@ -172,7 +181,7 @@ func GetInitCommand() *cli.Command {
 					Description: description,
 				},
 				Scripts:      scripts,
-				Dependencies: dependencies,
+				Dependencies: projectDependencies, // Use the transformed map
 			}
 
 			// Write to project.toml using the centralized function
