@@ -60,6 +60,11 @@ var AddCommand = &cli.Command{
 		customName := cCtx.String("name")
 		verbose := cCtx.Bool("verbose")
 
+		// --- Temporary debug prints ---
+		fmt.Printf("[DEBUG Action] Raw cCtx.String(\"directory\"): %s\n", cCtx.String("directory"))
+		fmt.Printf("[DEBUG Action] Raw cCtx.String(\"name\"): %s\n", cCtx.String("name"))
+		// --- End temporary debug prints ---
+
 		if verbose {
 			fmt.Printf("Attempting to add dependency:\n")
 			fmt.Printf("  Source URL Input: %s\n", sourceURLInput)

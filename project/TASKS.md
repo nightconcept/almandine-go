@@ -154,37 +154,61 @@
     -   [x] Ensure clear error messages are provided to the user.
     -   [x] Manual Verification: Test error scenarios: invalid URL, download failure, write permission errors for manifest/lockfile, simulate failures mid-process to check cleanup.
 
-## Milestone 3: Initial E2E Testing Setup (Placeholder)
+## Milestone 3: Initial Testing Setup
 
-**Goal:** Establish the basic structure for E2E tests for the `init` and `add` commands. (Detailed test cases TBD).
+**Goal:** Establish the basic structure for tests for the `init` and `add` commands.
 
--   [ ] **Task 3.1: Define E2E Testing Strategy**
-    -   [ ] Determine the framework (standard Go `testing` package likely sufficient).
-    -   [ ] Decide on approach:
-        -   Running `almd` as a subprocess (`os/exec`) within test functions.
-        -   Directly calling command `Action` functions (may require refactoring for testability/dependency injection).
-    -   [ ] Plan for handling `init` interactivity (e.g., using input redirection, pre-made config files, or potentially a future non-interactive flag).
-    -   [ ] Plan for handling `add` network calls (e.g., using a mock HTTP server like `net/http/httptest`, or hitting real endpoints for specific test cases).
-    -   [ ] Define setup/teardown logic (creating temporary directories, cleaning up generated files like `project.toml`, `almd-lock.toml`, downloaded libs).
-    -   [ ] Manual Verification: Review the chosen strategy for feasibility.
+-   [x] **Task 3.1: Define Testing Strategy**
+    -   [x] Framework: Standard Go `testing` package with `testify` for assertions.
+    -   [x] `init` command: Unit tests directly invoking the command's `Action`, simulating user input (as in `commands/init_test.go`).
+    -   [x] `add` command: Unit tests directly invoking the command's `Action` (via `app.Run` within the test).
+        -   [x] Network calls for `add` will be mocked using `net/http/httptest`.
+        -   [x] File system operations will occur in temporary directories created by tests.
+    -   [x] Setup/Teardown: Tests will create temporary directories and necessary initial files (e.g., `project.toml`), and these will be cleaned up automatically by `t.TempDir()` or explicit `defer os.RemoveAll`.
+    -   [x] Manual Verification: Review the chosen strategy for feasibility.
 
 -   [ ] **Task 3.2: Create Test File Structure**
-    -   [ ] Create test files (e.g., `commands/init_test.go`, `commands/add_test.go` or a dedicated `test/e2e/` directory).
-    -   [ ] Implement basic setup/teardown helpers based on the chosen strategy.
-    -   [ ] Manual Verification: Run `go test ./...` and confirm the test files are picked up and basic setup/teardown executes without error.
+    -   [x] Test file for `init` command: `commands/init_test.go` (exists).
+    -   [ ] Create test file for `add` command: `commands/add_test.go`.
+    -   [ ] Implement shared test helpers if applicable (e.g., for creating temp env, running command actions).
+    -   [ ] Manual Verification: Run `go test ./...` and confirm test files are picked up.
 
--   [ ] **Task 3.3: Implement Basic `init` Test Case**
-    -   [ ] Add a simple test case that runs `almd init` (using the chosen strategy) in a temporary directory.
-    -   [ ] Verify that `project.toml` is created.
-    -   [ ] (Optional) Perform basic checks on the default content of `project.toml`.
-    -   [ ] Manual Verification: Run the specific test and confirm it passes and cleans up correctly.
+-   [ ] **Task 3.3: Implement `init` Command Test Cases (Existing)**
+    -   [x] Basic `init` test case (as in `commands/init_test.go`).
+    -   [x] `init` test case with defaults and empty inputs (as in `commands/init_test.go`).
 
--   [ ] **Task 3.4: Implement Basic `add` Test Case**
-    -   [ ] Add a simple test case that runs `almd add <test_url>` (using the chosen strategy, potentially with a mock server) in a temporary directory containing a minimal `project.toml`.
-    -   [ ] Verify the dependency file is downloaded to the expected location.
-    -   [ ] Verify `project.toml` is updated correctly.
-    -   [ ] Verify `almd-lock.toml` is created/updated correctly.
-    -   [ ] Manual Verification: Run the specific test and confirm it passes and cleans up correctly.
+-   [ ] **Task 3.4: Implement `add` Command Unit Test Cases**
+    -   [ ] **Sub-Task 3.4.1: Setup for `add` tests in `commands/add_test.go`**
+        -   [ ] Define `TestMain` if any global setup/teardown for `add` tests is needed.
+        -   [x] Create helper: `setupAddTestEnvironment(t *testing.T, initialProjectTomlContent string) (tempDir string)` that creates a temp dir and a `project.toml`.
+        -   [x] Create helper: `runAddCommand(t *testing.T, tempDir string, mockServerURL string, cliArgs ...string) error` to set up and run the `add` command's action using an `cli.App` instance.
+        -   [x] Create helper: `startMockHTTPServer(t *testing.T, content string, expectedPath string, statusCode int) *httptest.Server`.
+    -   [ ] **Sub-Task 3.4.2: Test `almd add` - Successful Download and Update (Explicit Name, Custom Directory)**
+        -   [ ] Setup: Temp dir, basic `project.toml`, mock HTTP server serving test content.
+        -   [ ] Execute: `almd add <mock_url_to_file> -n mylib -d vendor/custom`.
+        -   [ ] Verify:
+            -   `vendor/custom/mylib` created with correct content.
+            -   `project.toml` updated with `[dependencies.mylib]` pointing to `source` and `path="vendor/custom/mylib"`.
+            -   `almd-lock.toml` created/updated with `[package.mylib]` including `source`, `path`, and `hash="sha256:..."`.
+    -   [ ] **Sub-Task 3.4.3: Test `almd add` - Successful Download (Inferred Name, Default Directory)**
+        -   [ ] Execute: `almd add <mock_url_to_file.sh>`.
+        -   [ ] Verify:
+            -   `libs/file.sh` (or project root, per PRD) created.
+            -   Manifest and lockfile updated with inferred name `file.sh`.
+    -   [ ] **Sub-Task 3.4.4: Test `almd add` - GitHub URL with Commit Hash**
+        -   [ ] URL should include a commit hash segment.
+        -   [ ] Verify `almd-lock.toml` `hash` field reflects `commit:<hash>` if source handler extracts it, otherwise SHA256 of content. (PRD implies `hash` is the integrity string, so `commit:<hash_val>` or `sha256:<hash_val>`).
+    -   [ ] **Sub-Task 3.4.5: Test `almd add` - Error: Download Failure (HTTP Error)**
+        -   [ ] Mock server returns non-200 status.
+        -   [ ] Verify command returns an error.
+        -   [ ] Verify no dependency file is created.
+        -   [ ] Verify `project.toml` and `almd-lock.toml` are not modified (or created if they didn't exist).
+    -   [ ] **Sub-Task 3.4.6: Test `almd add` - Error: `project.toml` Not Found**
+        -   [ ] Run `add` in a temp dir without `project.toml`.
+        -   [ ] Verify command returns an appropriate error.
+    -   [ ] **Sub-Task 3.4.7: Test `almd add` - Cleanup on Failure (e.g., Lockfile Write Error)**
+        -   Difficult to precisely mock file system write errors without more DI.
+        -   Focus on: If download happens, but a subsequent step like TOML marshaling or lockfile writing fails, does the downloaded file get removed? (This might require a test where the mock HTTP server succeeds, but we introduce an error in a subsequent, controllable step if possible, or inspect code paths for this cleanup logic). Initially, can be a lower priority if hard to test cleanly.
 
 ---
 

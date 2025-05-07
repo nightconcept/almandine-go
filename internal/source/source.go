@@ -6,6 +6,16 @@ import (
 	"strings"
 )
 
+// testModeBypassHostValidation is an internal flag for testing to bypass hostname checks.
+// WARNING: This should only be set to true in test environments.
+var testModeBypassHostValidation = false
+
+// SetTestModeBypassHostValidation enables or disables the hostname validation bypass for testing.
+// This function is intended to be called only from test packages.
+func SetTestModeBypassHostValidation(enable bool) {
+	testModeBypassHostValidation = enable
+}
+
 // ParsedSourceInfo holds the details extracted from a source URL.
 type ParsedSourceInfo struct {
 	RawURL            string // The raw URL to download the file content
@@ -26,7 +36,42 @@ func ParseSourceURL(sourceURL string) (*ParsedSourceInfo, error) {
 		return nil, fmt.Errorf("failed to parse source URL '%s': %w", sourceURL, err)
 	}
 
-	if strings.ToLower(u.Hostname()) == "github.com" {
+	if testModeBypassHostValidation {
+		// In test mode, directly construct ParsedSourceInfo assuming a GitHub-like raw content path structure.
+		// Path structure expected: /<owner>/<repo>/<ref>/<path_to_file...>
+		pathParts := strings.Split(strings.Trim(u.Path, "/"), "/")
+		if len(pathParts) < 4 { // Expect at least owner, repo, ref, and one file part
+			return nil, fmt.Errorf("test mode URL path '%s' not in expected format /<owner>/<repo>/<ref>/<file...> PpathParts was: %v", u.Path, pathParts)
+		}
+
+		owner := pathParts[0]
+		repo := pathParts[1]
+		ref := pathParts[2]
+		filePathInRepo := strings.Join(pathParts[3:], "/")
+		filename := pathParts[len(pathParts)-1]
+
+		// Ensure filename is not empty if filePathInRepo was just "/"
+		if filename == "" && filePathInRepo == "" {
+			// This case implies path was like /owner/repo/ref/ which is not a file
+			return nil, fmt.Errorf("test mode URL path '%s' seems to point to a directory, not a file", u.Path)
+		}
+		if filename == "" && len(pathParts) == 4 { // e.g. /owner/repo/ref/ (empty filename part)
+			filename = pathParts[3] // take the last segment as filename if not further nested
+		}
+
+		return &ParsedSourceInfo{
+			RawURL:            u.String(),                                                          // Use the mock server's actual URL for download
+			CanonicalURL:      fmt.Sprintf("github:%s/%s/%s@%s", owner, repo, filePathInRepo, ref), // Construct a canonical URL
+			Ref:               ref,
+			Provider:          "github", // Simulate GitHub provider
+			Owner:             owner,
+			Repo:              repo,
+			PathInRepo:        filePathInRepo,
+			SuggestedFilename: filename,
+		}, nil
+	}
+
+	if strings.ToLower(u.Hostname()) == "github.com" || strings.ToLower(u.Hostname()) == "raw.githubusercontent.com" {
 		return parseGitHubURL(u)
 	}
 

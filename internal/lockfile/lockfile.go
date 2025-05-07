@@ -27,14 +27,14 @@ type PackageEntry struct {
 // Lockfile represents the structure of the almd-lock.toml file.
 type Lockfile struct {
 	ApiVersion string                  `toml:"api_version"`
-	Packages   map[string]PackageEntry `toml:"packages"`
+	Package    map[string]PackageEntry `toml:"package"`
 }
 
 // New creates a new Lockfile instance with default values.
 func New() *Lockfile {
 	return &Lockfile{
 		ApiVersion: APIVersion,
-		Packages:   make(map[string]PackageEntry),
+		Package:    make(map[string]PackageEntry),
 	}
 }
 
@@ -58,8 +58,8 @@ func Load(projectRoot string) (*Lockfile, error) {
 		lf.ApiVersion = APIVersion
 	}
 	// Ensure Packages map is initialized
-	if lf.Packages == nil {
-		lf.Packages = make(map[string]PackageEntry)
+	if lf.Package == nil {
+		lf.Package = make(map[string]PackageEntry)
 	}
 	return lf, nil
 }
@@ -82,10 +82,10 @@ func Save(projectRoot string, lf *Lockfile) error {
 
 // AddOrUpdatePackage adds or updates a package entry in the lockfile.
 func (lf *Lockfile) AddOrUpdatePackage(name, rawURL, relativePath, integrityHash string) {
-	if lf.Packages == nil {
-		lf.Packages = make(map[string]PackageEntry)
+	if lf.Package == nil {
+		lf.Package = make(map[string]PackageEntry)
 	}
-	lf.Packages[name] = PackageEntry{
+	lf.Package[name] = PackageEntry{
 		Source: rawURL,
 		Path:   relativePath,
 		Hash:   integrityHash,
