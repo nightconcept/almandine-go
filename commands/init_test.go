@@ -127,8 +127,11 @@ func TestInitCommand(t *testing.T) {
 	assert.Equal(t, expectedScripts, generatedConfig.Scripts, "Scripts mismatch")
 
 	// Verify Dependencies
-	expectedDependencies := map[string]string{
-		"my-dep": "github.com/user/repo",
+	expectedDependencies := map[string]project.Dependency{
+		"my-dep": {
+			Source: "github.com/user/repo",
+			Path:   "", // Path is initially empty for placeholder dependencies
+		},
 	}
 	assert.Equal(t, expectedDependencies, generatedConfig.Dependencies, "Dependencies mismatch")
 
