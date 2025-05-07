@@ -15,14 +15,6 @@ import (
 
 // The main function, where the program execution begins.
 func main() {
-	// --- BEGIN OS.ARGS DIAGNOSTIC ---
-	// fmt.Printf("Raw os.Args: %v\n", os.Args)
-	// fmt.Printf("Number of args: %d\n", len(os.Args))
-	// for i, arg := range os.Args {
-	// 	fmt.Printf("os.Args[%d]: %s\n", i, arg)
-	// }
-	// --- END OS.ARGS DIAGNOSTIC ---
-
 	app := &cli.App{
 		Name:    "almd",
 		Usage:   "A simple project manager for single-file dependencies",
