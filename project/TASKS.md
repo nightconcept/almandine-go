@@ -210,6 +210,11 @@
     -   [x] **Sub-Task 3.4.7: Test `almd add` - Cleanup on Failure (e.g., Lockfile Write Error)**
         -   [x] Difficult to precisely mock file system write errors without more DI.
         -   [x] Focus on: If download happens, but a subsequent step like TOML marshaling or lockfile writing fails, does the downloaded file get removed? (This might require a test where the mock HTTP server succeeds, but we introduce an error in a subsequent, controllable step if possible, or inspect code paths for this cleanup logic). Initially, can be a lower priority if hard to test cleanly.
+    -   [x] **Sub-Task 3.4.8: Fix `TestAddCommand_ProjectTomlNotFound` (2025-05-07)**
+        -   [x] Modified error message in `internal/cli/add/add.go` to include "no such file or directory" when `project.toml` is not found.
+        -   [x] Refactored `Action` in `internal/cli/add/add.go` to use a named return error, ensuring the deferred cleanup logic correctly removes downloaded files when `project.toml` is missing and an error is returned.
+        -   [x] Corrected variable types for `proj` (to `*project.Project`) and `lf` (to `*lockfile.Lockfile`) in `internal/cli/add/add.go` to resolve compiler errors.
+
 
 ## Milestone 4: `remove` Command Implementation
 

@@ -48,22 +48,18 @@ var AddCommand = &cli.Command{
 			Usage: "Enable verbose output",
 		},
 	},
-	Action: func(cCtx *cli.Context) error {
+	Action: func(cCtx *cli.Context) (err error) { // MODIFIED: Named return error
 		sourceURLInput := ""
 		if cCtx.NArg() > 0 {
 			sourceURLInput = cCtx.Args().Get(0) // .First() is equivalent but .Get(0) is more explicit
 		} else {
-			return cli.Exit("Error: <source_url> argument is required.", 1)
+			err = cli.Exit("Error: <source_url> argument is required.", 1) // MODIFIED
+			return
 		}
 
 		targetDir := cCtx.String("directory")
 		customName := cCtx.String("name")
 		verbose := cCtx.Bool("verbose")
-
-		// --- Temporary debug prints ---
-		fmt.Printf("[DEBUG Action] Raw cCtx.String(\"directory\"): %s\n", cCtx.String("directory"))
-		fmt.Printf("[DEBUG Action] Raw cCtx.String(\"name\"): %s\n", cCtx.String("name"))
-		// --- End temporary debug prints ---
 
 		if verbose {
 			fmt.Printf("Attempting to add dependency:\n")
@@ -74,9 +70,11 @@ var AddCommand = &cli.Command{
 		}
 
 		// Task 2.2: Parse the source URL
-		parsedInfo, err := source.ParseSourceURL(sourceURLInput)
+		var parsedInfo *source.ParsedSourceInfo
+		parsedInfo, err = source.ParseSourceURL(sourceURLInput) // Assign to named return 'err'
 		if err != nil {
-			return cli.Exit(fmt.Sprintf("Error parsing source URL '%s': %v", sourceURLInput, err), 1)
+			err = cli.Exit(fmt.Sprintf("Error parsing source URL '%s': %v", sourceURLInput, err), 1) // MODIFIED
+			return
 		}
 
 		if verbose {
@@ -91,9 +89,11 @@ var AddCommand = &cli.Command{
 		if verbose {
 			fmt.Printf("Downloading from %s...\n", parsedInfo.RawURL)
 		}
-		fileContent, err := downloader.DownloadFile(parsedInfo.RawURL)
+		var fileContent []byte
+		fileContent, err = downloader.DownloadFile(parsedInfo.RawURL) // Assign to named return 'err'
 		if err != nil {
-			return cli.Exit(fmt.Sprintf("Error downloading file from '%s': %v", parsedInfo.RawURL, err), 1)
+			err = cli.Exit(fmt.Sprintf("Error downloading file from '%s': %v", parsedInfo.RawURL, err), 1) // MODIFIED
+			return
 		}
 		if verbose {
 			fmt.Printf("Downloaded %d bytes successfully.\n", len(fileContent))
@@ -111,14 +111,16 @@ var AddCommand = &cli.Command{
 			fileNameOnDisk = customName + suggestedExtension // Ensure extension is preserved
 		} else {
 			if suggestedBaseName == "" || suggestedBaseName == "." || suggestedBaseName == "/" {
-				return cli.Exit(fmt.Sprintf("Error: Could not infer a valid base filename from URL's suggested filename: '%s'. Use -n to specify a name.", parsedInfo.SuggestedFilename), 1)
+				err = cli.Exit(fmt.Sprintf("Error: Could not infer a valid base filename from URL's suggested filename: '%s'. Use -n to specify a name.", parsedInfo.SuggestedFilename), 1) // MODIFIED
+				return
 			}
 			dependencyNameInManifest = suggestedBaseName
 			fileNameOnDisk = parsedInfo.SuggestedFilename
 		}
 
 		if fileNameOnDisk == "" || fileNameOnDisk == "." || fileNameOnDisk == "/" {
-			return cli.Exit("Error: Could not determine a valid final filename for saving. Inferred name was empty or invalid.", 1)
+			err = cli.Exit("Error: Could not determine a valid final filename for saving. Inferred name was empty or invalid.", 1) // MODIFIED
+			return
 		}
 
 		if verbose {
@@ -141,8 +143,10 @@ var AddCommand = &cli.Command{
 		if verbose {
 			fmt.Printf("Ensuring directory exists: %s\n", dirToCreate)
 		}
-		if err := os.MkdirAll(dirToCreate, 0755); err != nil {
-			return cli.Exit(fmt.Sprintf("Error creating directory '%s': %v", dirToCreate, err), 1)
+		// Use a temporary variable for MkdirAll's error to not shadow the named return 'err'
+		if mkdirErr := os.MkdirAll(dirToCreate, 0755); mkdirErr != nil {
+			err = cli.Exit(fmt.Sprintf("Error creating directory '%s': %v", dirToCreate, mkdirErr), 1) // MODIFIED
+			return
 		}
 
 		// Save the downloaded content to the file
@@ -150,26 +154,27 @@ var AddCommand = &cli.Command{
 		if verbose {
 			fmt.Printf("Saving file to %s...\n", fullPath)
 		}
-		if err := os.WriteFile(fullPath, fileContent, 0644); err != nil {
+		// Use a temporary variable for WriteFile's error
+		if writeErr := os.WriteFile(fullPath, fileContent, 0644); writeErr != nil {
 			// No file to clean up yet, as it wasn't written.
-			return cli.Exit(fmt.Sprintf("Error writing file '%s': %v", fullPath, err), 1)
+			err = cli.Exit(fmt.Sprintf("Error writing file '%s': %v", fullPath, writeErr), 1) // MODIFIED
+			return
 		}
 		// File has been written. From this point on, if an error occurs, we must attempt to clean it up.
 		fileWritten := true
 		defer func() {
-			if err != nil && fileWritten { // If an error occurred and file was written
+			// 'err' here refers to the named return parameter of the Action func.
+			if err != nil && fileWritten { // If an error occurred (i.e., Action is returning an error) and file was written
 				if verbose {
-					fmt.Printf("Attempting to clean up downloaded file '%s' due to error...\n", fullPath)
+					fmt.Printf("Attempting to clean up downloaded file '%s' due to error: %v\n", fullPath, err)
 				}
 				cleanupErr := os.Remove(fullPath)
 				if cleanupErr != nil {
-					// Log cleanup error but don't override original error.
-					// Using cCtx.App.ErrWriter if available, otherwise os.Stderr
-					var errWriter io.Writer = os.Stderr // Explicitly type as io.Writer
+					var errWriter io.Writer = os.Stderr
 					if cCtx.App != nil && cCtx.App.ErrWriter != nil {
 						errWriter = cCtx.App.ErrWriter
 					}
-					_, _ = fmt.Fprintf(errWriter, "Warning: Failed to clean up downloaded file '%s': %v\n", fullPath, cleanupErr)
+					_, _ = fmt.Fprintf(errWriter, "Warning: Failed to clean up downloaded file '%s' during error handling: %v\n", fullPath, cleanupErr)
 				} else {
 					if verbose {
 						fmt.Printf("Successfully cleaned up downloaded file '%s'.\n", fullPath)
@@ -179,10 +184,13 @@ var AddCommand = &cli.Command{
 		}()
 
 		// Task 2.5: Calculate hash of the downloaded content
-		fileHashSHA256, hashErr := hasher.CalculateSHA256(fileContent)
+		var fileHashSHA256 string
+		var hashErr error
+		fileHashSHA256, hashErr = hasher.CalculateSHA256(fileContent)
 		if hashErr != nil {
-			err = fmt.Errorf("calculating SHA256 hash: %w", hashErr)
-			return cli.Exit(fmt.Sprintf("Error %s. File '%s' was saved but is now being cleaned up.", err, fullPath), 1)
+			// Assign to named return 'err'
+			err = cli.Exit(fmt.Sprintf("Error calculating SHA256 hash: %v. File '%s' was saved but is now being cleaned up.", hashErr, fullPath), 1) // MODIFIED
+			return
 		}
 		if verbose {
 			fmt.Printf("SHA256 hash of downloaded file: %s\n", fileHashSHA256)
@@ -193,19 +201,21 @@ var AddCommand = &cli.Command{
 			fmt.Println("Updating project.toml...")
 		}
 		projectTomlPath := filepath.Join(projectRoot, config.ProjectTomlName)
-		proj, loadTomlErr := config.LoadProjectToml(projectTomlPath)
+		var proj *project.Project // MODIFIED: Use pointer type
+		var loadTomlErr error
+		proj, loadTomlErr = config.LoadProjectToml(projectTomlPath)
 		if loadTomlErr != nil {
 			if os.IsNotExist(loadTomlErr) {
-				// Task 3.4.6: Return an error if project.toml is not found
-				err = fmt.Errorf("project.toml not found: %w", loadTomlErr)
-				return cli.Exit(fmt.Sprintf("Error: %s. File '%s' was saved but is now being cleaned up.", err, fullPath), 1)
+				detailedError := fmt.Errorf("project.toml not found (no such file or directory): %w", loadTomlErr)
+				err = cli.Exit(fmt.Sprintf("Error: %s. File '%s' was saved but is now being cleaned up.", detailedError, fullPath), 1)
+				return
 			} else {
-				err = fmt.Errorf("loading %s: %w", config.ProjectTomlName, loadTomlErr)
-				return cli.Exit(fmt.Sprintf("Error %s. File '%s' was saved but is now being cleaned up.", err, fullPath), 1)
+				err = cli.Exit(fmt.Sprintf("Error loading %s: %v. File '%s' was saved but is now being cleaned up.", config.ProjectTomlName, loadTomlErr, fullPath), 1)
+				return
 			}
 		}
 
-		// Ensure dependencies map is initialized (NewProject should handle this, but defensive check)
+		// Ensure dependencies map is initialized
 		if proj.Dependencies == nil {
 			proj.Dependencies = make(map[string]project.Dependency)
 		}
@@ -216,9 +226,10 @@ var AddCommand = &cli.Command{
 			Path:   relativeDestPath,
 		}
 
-		if writeTomlErr := config.WriteProjectToml(projectTomlPath, proj); writeTomlErr != nil {
-			err = fmt.Errorf("writing %s: %w", config.ProjectTomlName, writeTomlErr)
-			return cli.Exit(fmt.Sprintf("Error %s. File '%s' was saved but is now being cleaned up. %s may be in an inconsistent state.", err, fullPath, config.ProjectTomlName), 1)
+		// Use a temporary variable for WriteProjectToml's error
+		if writeTomlErr := config.WriteProjectToml(projectTomlPath, proj); writeTomlErr != nil { // proj is already a pointer
+			err = cli.Exit(fmt.Sprintf("Error writing %s: %v. File '%s' was saved but is now being cleaned up. %s may be in an inconsistent state.", config.ProjectTomlName, writeTomlErr, fullPath, config.ProjectTomlName), 1)
+			return
 		}
 
 		if verbose {
@@ -230,14 +241,12 @@ var AddCommand = &cli.Command{
 			fmt.Println("Updating almd-lock.toml...")
 		}
 
-		lf, loadLockErr := lockfile.Load(projectRoot) // Load or initialize if not found
+		var lf *lockfile.Lockfile // MODIFIED: Use pointer type and correct package
+		var loadLockErr error
+		lf, loadLockErr = lockfile.Load(projectRoot) // Load or initialize if not found
 		if loadLockErr != nil {
-			// Load now also initializes, so a critical error here means we can't proceed.
-			err = fmt.Errorf("loading/initializing %s: %w", lockfile.LockfileName, loadLockErr)
-			// project.toml was successfully written. This is a more complex cleanup scenario.
-			// For now, as per task, focus on cleaning the downloaded file.
-			// User will be warned about potential inconsistency.
-			return cli.Exit(fmt.Sprintf("Error %s. File '%s' saved and %s updated, but lockfile operation failed. %s and %s may be inconsistent. Downloaded file '%s' is being cleaned up.", err, fullPath, config.ProjectTomlName, config.ProjectTomlName, lockfile.LockfileName, fullPath), 1)
+			err = cli.Exit(fmt.Sprintf("Error loading/initializing %s: %v. File '%s' saved and %s updated, but lockfile operation failed. %s and %s may be inconsistent. Downloaded file '%s' is being cleaned up.", lockfile.LockfileName, loadLockErr, fullPath, config.ProjectTomlName, config.ProjectTomlName, lockfile.LockfileName, fullPath), 1)
+			return
 		}
 
 		// Determine integrity hash: commit:<commit_hash> or sha256:<hash>
@@ -265,10 +274,12 @@ var AddCommand = &cli.Command{
 				if verbose {
 					fmt.Printf("Attempting to resolve ref '%s' to a specific commit SHA for path '%s' in repo '%s/%s'...\\n", parsedInfo.Ref, parsedInfo.PathInRepo, parsedInfo.Owner, parsedInfo.Repo)
 				}
-				commitSHA, err := source.GetLatestCommitSHAForFile(parsedInfo.Owner, parsedInfo.Repo, parsedInfo.PathInRepo, parsedInfo.Ref)
-				if err != nil {
+				var commitSHA string
+				var getCommitErr error
+				commitSHA, getCommitErr = source.GetLatestCommitSHAForFile(parsedInfo.Owner, parsedInfo.Repo, parsedInfo.PathInRepo, parsedInfo.Ref)
+				if getCommitErr != nil {
 					if verbose {
-						fmt.Printf("Warning: Failed to get specific commit SHA for '%s@%s': %v. Falling back to SHA256 content hash for lockfile.\\n", parsedInfo.PathInRepo, parsedInfo.Ref, err)
+						fmt.Printf("Warning: Failed to get specific commit SHA for '%s@%s': %v. Falling back to SHA256 content hash for lockfile.\\n", parsedInfo.PathInRepo, parsedInfo.Ref, getCommitErr)
 					}
 					integrityHash = fileHashSHA256
 				} else {
@@ -290,10 +301,11 @@ var AddCommand = &cli.Command{
 		// For lockfile, use the exact raw download URL and calculated integrity hash
 		lf.AddOrUpdatePackage(dependencyNameInManifest, parsedInfo.RawURL, relativeDestPath, integrityHash)
 
+		// Use a temporary variable for lockfile.Save's error
 		if saveLockErr := lockfile.Save(projectRoot, lf); saveLockErr != nil {
-			err = fmt.Errorf("saving %s: %w", lockfile.LockfileName, saveLockErr)
-			// project.toml was successfully written.
-			return cli.Exit(fmt.Sprintf("Error %s. File '%s' saved and %s updated, but saving %s failed. %s and %s may be inconsistent. Downloaded file '%s' is being cleaned up.", err, fullPath, config.ProjectTomlName, lockfile.LockfileName, config.ProjectTomlName, lockfile.LockfileName, fullPath), 1)
+			// Assign to named return 'err'
+			err = cli.Exit(fmt.Sprintf("Error saving %s: %v. File '%s' saved and %s updated, but saving %s failed. %s and %s may be inconsistent. Downloaded file '%s' is being cleaned up.", lockfile.LockfileName, saveLockErr, fullPath, config.ProjectTomlName, lockfile.LockfileName, config.ProjectTomlName, lockfile.LockfileName, fullPath), 1) // MODIFIED
+			return
 		}
 
 		if verbose {
