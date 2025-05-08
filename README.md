@@ -74,6 +74,18 @@ Run tests.
 go test ./...
 ```
 
+
+### ready
+
+Prepare for commit.
+
+```sh
+gofmt -l -w .
+go vet ./...
+go mod tidy -v
+golangci-lint run --fix
+```
+
 ---
 
 ## License
