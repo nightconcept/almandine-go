@@ -20,6 +20,21 @@ Easily manage, install, and update Lua single-file dependencies with a single CL
 
 ---
 
+## Requirements
+
+### macOS/Linux
+- [Nix](https://nixos.org/)
+- [devenv](https://devenv.sh/)
+
+### Windows
+- Go 1.23+
+- [pre-commit](https://pre-commit.com/)
+- [xc](https://github.com/joerdav/xc) task runner
+
+_Note: These can all be installed via Scoop._
+
+---
+
 ## 🛠️ Usage
 
 ```sh
@@ -29,8 +44,6 @@ almd remove <package>    # Remove a dependency
 almd update              # Update dependencies
 almd list                # List installed dependencies
 ```
-
-- See `almd --help` for all commands and options.
 
 ---
 
