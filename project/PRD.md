@@ -114,16 +114,30 @@ Almandine (`almd` as the CLI command) is a lightweight package manager for Go pr
         -   **Dependency Traversal:** Iterates through the dependencies defined in the `[dependencies]` table of `project.toml`. For each dependency:
             -   Retrieves its logical name, the configured `source` identifier, and its relative `path` from `project.toml`.
             -   Attempts to retrieve its corresponding entry from `almd-lock.toml` to get the locked raw `source` URL and the integrity `hash`.
-        -   **Output Formatting:** Displays the collected information for each dependency. The default output format typically includes:
-            -   Logical dependency name.
-            -   Declared `source` identifier from `project.toml`.
-            -   Locked `hash` (e.g., `commit:<hash>` or `sha256:<hash>`) from `almd-lock.toml`. If not locked, this might be indicated (e.g., "not locked").
-            -   Relative `path` in the project where the file is (or should be) located.
+        -   **Output Formatting:** Displays information in a format similar to `pnpm list`. It will use the `fatih/color` library for terminal coloring, respecting the `NO_COLOR` environment variable.
+            -   **Project Information Line:**
+                -   Format: `ProjectName@Version /path/to/project/root`
+                -   Colors:
+                    -   Project Name: Magenta (`color.FgMagenta`)
+                    -   `@`: Standard terminal color
+                    -   Version: Magenta (`color.FgMagenta`)
+                    -   Path: Dim Gray (`color.FgHiBlack`)
+            -   An empty line follows the project information.
+            -   **"dependencies:" Header:**
+                -   Text: `dependencies:`
+                -   Color: Cyan and Bold (`color.FgCyan`, `color.Bold`)
+            -   **Dependency Lines:**
+                -   Format: `DependencyName LockedHash RelativePath`
+                -   Colors:
+                    -   Dependency Name: White (`color.FgWhite`)
+                    -   Locked Hash: Yellow (`color.FgYellow`) (e.g., `commit:<hash>` or `sha256:<hash>`, or "not locked" in standard color if applicable)
+                    -   Relative Path: Dim Gray (`color.FgHiBlack`)
+            -   If no dependencies, after the "dependencies:" header, "(none)" will be printed in standard color.
         -   **Extended Information (e.g., with a `--long` or `-l` flag):**
             -   The full locked raw `source` URL from `almd-lock.toml`.
             -   Status indication, e.g., "INSTALLED" (if local file at `path` exists and optionally matches hash), "MISSING" (if local file at `path` does not exist), "NOT_LOCKED".
             -   (Future/Advanced) Potentially indicate if a newer version is available if the `project.toml` source is a "floating" reference (like a branch name) and it resolves to a newer commit than what's in the lockfile. This would require resolving the `project.toml` source during the list operation.
-        -   **No Dependencies:** If `project.toml` contains no dependencies, an appropriate message (e.g., "No dependencies found in project.toml.") is printed.
+        -   **No Dependencies:** If `project.toml` contains no dependencies, the "dependencies:" header is still printed, followed by "(none)".
     -   **Arguments & Flags (`urfave/cli`):**
         -   `--long`, `-l`: Optional flag (`cli.BoolFlag`) to display more detailed information for each listed dependency.
         -   `--json`: Optional flag (`cli.BoolFlag`) to output the dependency list in JSON format, suitable for machine parsing.
@@ -325,6 +339,7 @@ Tech Stack
             A TOML parser/generator library (e.g., `github.com/BurntSushi/toml`).
             A robust CLI framework (e.g., `github.com/urfave/cli/v2`).
             An assertion library for testing (e.g., `github.com/stretchr/testify/assert`).
+            A terminal color library (e.g., `github.com/fatih/color`) for enhanced CLI output.
             Possibly a Git client library (e.g., go-git/go-git) if direct Git operations are needed beyond simple HTTP downloads (not currently planned for initial features).
 
 ## 5. Project-Specific Coding Rules (Go Implementation)

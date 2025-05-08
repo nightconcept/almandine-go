@@ -80,10 +80,21 @@ go test ./...
 Prepare for commit.
 
 ```sh
+gitingest -o project/digest.txt -e *.toml,*.txt,.roo/*,.cursor/*,build/ .
 gofmt -l -w .
 go vet ./...
 go mod tidy -v
 golangci-lint run --fix
+```
+
+### yolo
+
+Yolo install the `almd` binary to Windows.
+
+```sh
+go build -o build/almd ./cmd/almd
+go build -o build/almd.exe ./cmd/almd
+pwsh.exe -ExecutionPolicy Bypass -File ./install.ps1 --local
 ```
 
 ---

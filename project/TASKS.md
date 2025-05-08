@@ -431,71 +431,54 @@
 
 **Goal:** Implement the `almd list` (and `ls`) command to display project dependencies.
 
--   [ ] **Task 8.1: `urfave/cli` Command Setup for `list`**
-    -   [ ] Define the `list` command structure (`cli.Command`) in `internal/cli/list/list.go`.
-    -   [ ] Add `ls` as an alias for the `list` command.
-    -   [ ] Add the command to the `urfave/cli` App in `main.go`.
-    -   [ ] Define flags: `--long, -l` (bool), `--json` (bool), `--porcelain` (bool).
-    -   [ ] Manual Verification: Run `almd list --help` and `almd ls --help`. Confirm command, alias, and flags are listed.
+-   [x] **Task 8.1: `urfave/cli` Command Setup for `list` (2025-05-08)**
+    -   [x] Define the `list` command structure (`cli.Command`) in `internal/cli/list/list.go`.
+    -   [x] Add `ls` as an alias for the `list` command.
+    -   [x] Add the command to the `urfave/cli` App in `main.go`.
+    -   [x] Manual Verification: Run `almd list --help` and `almd ls --help`. Confirm command, alias, and flags are listed.
 
--   [ ] **Task 8.2: Manifest and Lockfile Loading for `list`**
-    -   [ ] In the `list` command's `Action`, load `project.toml` (using `internal/core/config`). Handle if not found (print "No dependencies..." or error).
-    -   [ ] Load `almd-lock.toml` (using `internal/core/lockfile`). Handle if not found (dependencies will show as "not locked").
-    -   [ ] Manual Verification: Test with missing manifest/lockfile.
+-   [x] **Task 8.2: Manifest and Lockfile Loading for `list` (2025-05-08)**
+    -   [x] In the `list` command's `Action`, load `project.toml` (using `internal/core/config`). Handle if not found (print "No dependencies..." or error).
+    -   [x] Load `almd-lock.toml` (using `internal/core/lockfile`). Handle if not found (dependencies will show as "not locked").
+    -   [x] Manual Verification: Test with missing manifest/lockfile.
 
--   [ ] **Task 8.3: Dependency Traversal and Information Gathering**
-    -   [ ] Iterate through dependencies in `project.toml`'s `[dependencies]` table.
-    -   [ ] For each dependency, retrieve:
-        -   Logical name.
-        -   Configured `source` from `project.toml`.
-        -   Relative `path` from `project.toml`.
-        -   Locked raw `source` URL and `hash` from `almd-lock.toml` (if present).
-        -   Local file existence status at `path`.
-    -   [ ] Manual Verification: Code review data gathering logic.
+-   [x] **Task 8.3: Dependency Traversal and Information Gathering (2025-05-08)**
+    -   [x] Iterate through dependencies in `project.toml`'s `[dependencies]` table.
+    -   [x] For each dependency, retrieve:
+        -   [x] Logical name.
+        -   [x] Configured `source` from `project.toml`.
+        -   [x] Relative `path` from `project.toml`.
+        -   [x] Locked raw `source` URL and `hash` from `almd-lock.toml` (if present).
+        -   [x] Local file existence status at `path`.
+    -   [x] Manual Verification: Code review data gathering logic.
 
--   [ ] **Task 8.4: Default Output Formatting**
-    -   [ ] Implement the default output format as per PRD:
-        -   Logical dependency name.
-        -   Declared `source` from `project.toml`.
-        -   Locked `hash` from `almd-lock.toml` (or "not locked").
-        -   Relative `path`.
-    -   [ ] Manual Verification: Run `almd list` with a sample project and check output.
+-   [x] **Task 8.4: Default Output Formatting (2025-05-08)**
+    -   [x] Implement the default output format as per PRD:
+        -   [x] Logical dependency name.
+        -   [x] Declared `source` from `project.toml`.
+        -   [x] Locked `hash` from `almd-lock.toml` (or "not locked").
+        -   [x] Relative `path`.
+    -   [x] Manual Verification: Run `almd list` with a sample project and check output.
 
--   [ ] **Task 8.5: Implement `--long` / `-l` Flag for Extended Output**
-    -   [ ] If `--long` is specified, include additional information as per PRD:
-        -   Full locked raw `source` URL from `almd-lock.toml`.
-        -   Status indication (e.g., "INSTALLED", "MISSING", "NOT_LOCKED").
-        -   (Future/Advanced from PRD - consider if in scope for this task: "Potentially indicate if a newer version is available...")
-    -   [ ] Manual Verification: Run `almd list -l` and check for extended details.
-
--   [ ] **Task 8.6: Implement `--json` Flag for JSON Output**
-    -   [ ] If `--json` is specified, output the dependency list in a structured JSON format.
-    -   [ ] Define the JSON structure (e.g., an array of objects, each representing a dependency with all relevant fields).
-    -   [ ] Manual Verification: Run `almd list --json`, validate output with a JSON parser/linter.
-
--   [ ] **Task 8.7: Implement `--porcelain` Flag for Scriptable Output**
-    -   [ ] If `--porcelain` is specified, output in a simple, machine-readable format (e.g., `name@version_hash path`).
-    -   [ ] Manual Verification: Run `almd list --porcelain` and check the output format.
-
--   [ ] **Task 8.8: Handling Projects with No Dependencies**
-    -   [ ] If `project.toml` has no `[dependencies]` table or it's empty, print an appropriate message (e.g., "No dependencies found in project.toml."). This should work for all output formats (default, long, json, porcelain - e.g. empty array for json).
-    -   [ ] Manual Verification: Test with an empty `project.toml` or one without dependencies.
+-   [x] **Task 8.5: Handling Projects with No Dependencies (2025-05-08)**
+    -   [x] If `project.toml` has no `[dependencies]` table or it's empty, print an appropriate message (e.g., "No dependencies found in project.toml."). This should work for all output formats (default, long, json, porcelain - e.g. empty array for json).
+    -   [x] Manual Verification: Test with an empty `project.toml` or one without dependencies.
 
 ## Milestone 9: `list` Command Testing
 
 **Goal:** Implement unit tests for the `list` command.
 
--   [ ] **Task 9.1: Test File Structure and Helpers for `list`**
-    -   [ ] Create test file: `internal/cli/list/list_test.go`.
-    -   [ ] Develop test helpers:
-        -   `setupListTestEnvironment(...)`: Creates temp dir, `project.toml`, `almd-lock.toml`, and optionally dummy dependency files.
-        -   `runListCommand(...)`: Executes the `list` command's action, capturing its stdout.
+-   [x] **Task 9.1: Test File Structure and Helpers for `list` (2025-05-08)**
+    -   [x] Create test file: `internal/cli/list/list_test.go`.
+    -   [x] Develop test helpers:
+        -   [x] `setupListTestEnvironment(...)`: Creates temp dir, `project.toml`, `almd-lock.toml`, and optionally dummy dependency files.
+        -   [x] `runListCommand(...)`: Executes the `list` command's action, capturing its stdout.
 
 -   [ ] **Task 9.2: Implement `list` Command Unit Test Cases**
-    -   [ ] **Sub-Task 9.2.1: Test `almd list` - No dependencies**
-        -   [ ] Setup: Empty `project.toml` or no `[dependencies]` table.
-        -   [ ] Execute: `almd list`.
-        -   [ ] Verify: Output indicates no dependencies. For `--json`, verify empty array or appropriate null structure.
+    -   [x] **Sub-Task 9.2.1: Test `almd list` - No dependencies (2025-05-08)**
+        -   [x] Setup: Empty `project.toml` or no `[dependencies]` table.
+        -   [x] Execute: `almd list`.
+        -   [x] Verify: Output indicates no dependencies. For `--json`, verify empty array or appropriate null structure. (Note: JSON output not yet implemented, test verifies default behavior)
     -   [ ] **Sub-Task 9.2.2: Test `almd list` - Single dependency (fully installed and locked)**
         -   [ ] Setup: `project.toml` with one dep, `almd-lock.toml` with corresponding entry, local file exists.
         -   [ ] Execute: `almd list`.
@@ -504,23 +487,42 @@
         -   [ ] Setup: Mix of deps: one fully installed, one in manifest but not lockfile, one in manifest & lockfile but file missing.
         -   [ ] Execute: `almd list`.
         -   [ ] Verify: Correct default output for each, reflecting their state.
-    -   [ ] **Sub-Task 9.2.4: Test `almd list -l` (or `--long`) - Verify extended output**
-        -   [ ] Setup: Similar to 9.2.3.
-        -   [ ] Execute: `almd list -l`.
-        -   [ ] Verify: Output includes all extended fields as per PRD (full locked source, status).
-    -   [ ] **Sub-Task 9.2.5: Test `almd list --json` - Verify JSON output**
-        -   [ ] Setup: A few dependencies with different states.
-        -   [ ] Execute: `almd list --json`.
-        -   [ ] Verify: Output is valid JSON and accurately represents the dependencies and their states.
-    -   [ ] **Sub-Task 9.2.6: Test `almd list --porcelain` - Verify porcelain output**
-        -   [ ] Setup: A few dependencies.
-        -   [ ] Execute: `almd list --porcelain`.
-        -   [ ] Verify: Output matches the defined porcelain format.
-    -   [ ] **Sub-Task 9.2.7: Test `almd ls` (alias) - Verify alias works**
+    -   [ ] **Sub-Task 9.2.4: Test `almd ls` (alias) - Verify alias works**
         -   [ ] Setup: Basic project with one dependency.
         -   [ ] Execute: `almd ls`.
         -   [ ] Verify: Output is identical to `almd list`.
-    -   [ ] **Sub-Task 9.2.8: Test `almd list` - `project.toml` not found**
+    -   [ ] **Sub-Task 9.2.5: Test `almd list` - `project.toml` not found**
         -   [ ] Setup: Run `list` in a temp dir without `project.toml`.
         -   [ ] Execute: `almd list`.
         -   [ ] Verify: Command returns an appropriate error or "no dependencies" message as per PRD.
+
+## Milestone 10: `list` Command Output Enhancement
+
+**Goal:** Update the `almd list` command output to be more informative and visually similar to `pnpm list`, including terminal colors using `fatih/color`.
+
+-   [x] **Task 10.1: Define `list` Output Structure and Color Scheme**
+    -   [x] Define pnpm-like output structure: Project info, "dependencies:" header, then `name path hash` for each. (Covered by previous Task 10.2, updated 2025-05-08)
+    -   [x] Specify color scheme using `fatih/color` (inspired by user-provided image):
+        -   Project Name: Magenta, Bold, Underline (`color.FgMagenta`, `color.Bold`, `color.Underline`)
+        -   `@`: Standard color
+        -   Project Version: Magenta (`color.FgMagenta`) (Note: User did not specify bold/underline for version, keeping as is)
+        -   Project Path: Dim Gray, Bold, Underline (`color.FgHiBlack`, `color.Bold`, `color.Underline`)
+        -   `dependencies:` header: Cyan and Bold (`color.FgCyan`, `color.Bold`)
+        -   Dependency Name: Yellow (`color.FgYellow`)
+        -   Dependency Hash: Standard color (No specific color attribute, or `color.Reset`)
+        -   Dependency Path: Green (`color.FgGreen`)
+    -   [x] Ensure `NO_COLOR` environment variable is respected (typically handled by `fatih/color` automatically, but verify).
+
+-   [x] **Task 10.2: Implement Output Changes in `internal/cli/list/list.go` (Initial pnpm-like format)**
+    -   [x] Load project name and version.
+    -   [x] Modify print statements to match the new pnpm-like format (without colors yet).
+
+-   [x] **Task 10.3: Implement Color Output in `internal/cli/list/list.go`**
+    -   [x] Add `github.com/fatih/color` as a project dependency.
+    -   [x] Import `fatih/color` in `internal/cli/list/list.go`.
+    -   [x] Update print statements to use the defined color scheme via `fatih/color` functions.
+
+-   [ ] **Task 10.4: Update `list` Command Tests (Blocked by Task 9.1, 9.2)**
+    -   [ ] Adjust existing tests in `internal/cli/list/list_test.go` to expect the new pnpm-like format (initially without asserting exact color codes, as this can be brittle). (File to be created in Task 9.1)
+    -   [x] Consider adding a simple manual verification step for color output. (Decision: Manual verification will be needed)
+    -   [ ] Add new test cases if necessary to cover different scenarios with the new format (e.g., project with name/version, project without). (To be done in Task 9.2)

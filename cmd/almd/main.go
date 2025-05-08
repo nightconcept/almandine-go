@@ -14,6 +14,7 @@ import (
 	"github.com/nightconcept/almandine-go/internal/cli/add"
 	"github.com/nightconcept/almandine-go/internal/cli/initcmd"
 	"github.com/nightconcept/almandine-go/internal/cli/install" // Changed from update to install
+	"github.com/nightconcept/almandine-go/internal/cli/list"
 	"github.com/nightconcept/almandine-go/internal/cli/remove"
 )
 
@@ -33,6 +34,7 @@ func main() {
 			add.AddCommand,
 			remove.RemoveCommand(),
 			install.NewInstallCommand(), // Changed from update.NewUpdateCommand()
+			list.ListCmd,
 		},
 	}
 

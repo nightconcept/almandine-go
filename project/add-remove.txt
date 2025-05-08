@@ -1,0 +1,18 @@
+$ pnpm add express
+Packages: +62
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Progress: resolved 708, reused 625, downloaded 0, added 61, done
+
+dependencies:
++ express 5.1.0
+
+Done in 2s
+
+$ pnpm remove express 
+Already up to date
+Progress: resolved 646, reused 563, downloaded 0, added 0, done
+
+dependencies:
+- express 5.1.0
+
+Done in 1.2s
