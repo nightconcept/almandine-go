@@ -325,46 +325,50 @@
     -   [x] Define flags: `--force, -f` (bool), `--verbose` (bool).
     -   [x] Manual Verification: Run `almd update --help` and confirm the command, argument, and flags are listed correctly.
 
--   [ ] **Task 6.2: Argument Parsing and Initial Loading**
-    -   [ ] In the `update` command's `Action`, parse optional dependency names. If none, target all.
-    -   [ ] Load `project.toml` (using `internal/core/config`). Handle errors if not found.
-    -   [ ] Load `almd-lock.toml` (using `internal/core/lockfile`). Handle if not found (treat as all dependencies needing update/addition to lockfile).
-    -   [ ] Manual Verification: Test with and without dependency names. Check behavior with missing manifest/lockfile.
+-   [x] **Task 6.2: Argument Parsing and Initial Loading**
+    -   [x] In the `update` command's `Action`, parse optional dependency names. If none, target all.
+    -   [x] Load `project.toml` (using `internal/core/config`). Handle errors if not found.
+    -   [x] Load `almd-lock.toml` (using `internal/core/lockfile`). Handle if not found (treat as all dependencies needing update/addition to lockfile).
+    -   [x] Manual Verification: Test with and without dependency names. Check behavior with missing manifest/lockfile.
 
--   [ ] **Task 6.3: Dependency Iteration and Configuration Retrieval**
-    -   [ ] Iterate through targeted dependencies (all from `project.toml` or specified names).
-    -   [ ] For each dependency:
-        -   [ ] Retrieve its configuration (canonical `source` identifier, `path`) from `project.toml`.
-        -   [ ] If a specified dependency name is not found in `project.toml`, skip with a warning.
-    -   [ ] Manual Verification: Code review logic for iteration and config fetching. Test with a mix of valid and invalid specified dependency names.
+-   [x] **Task 6.3: Dependency Iteration and Configuration Retrieval**
+    -   [x] Iterate through targeted dependencies (all from `project.toml` or specified names).
+    -   [x] For each dependency:
+        -   [x] Retrieve its configuration (canonical `source` identifier, `path`) from `project.toml`.
+        -   [x] If a specified dependency name is not found in `project.toml`, skip with a warning.
+    -   [x] Manual Verification: Code review logic for iteration and config fetching. Test with a mix of valid and invalid specified dependency names.
 
--   [ ] **Task 6.4: Target Version Resolution and Lockfile State Retrieval**
-    -   [ ] For each dependency:
-        -   [ ] Resolve its `source` from `project.toml` to a concrete downloadable raw URL and a definitive commit hash/version identifier (using `internal/source`). This involves fetching latest commit for branches/tags if necessary.
-        -   [ ] Retrieve its current locked state (raw `source` URL, `hash`) from `almd-lock.toml`, if an entry exists.
-    -   [ ] Manual Verification: Test source resolution for branches, tags, and specific commits. Check retrieval from lockfile.
+-   [x] **Task 6.4: Target Version Resolution and Lockfile State Retrieval**
+    -   [x] For each dependency:
+        -   [x] Resolve its `source` from `project.toml` to a concrete downloadable raw URL and a definitive commit hash/version identifier (using `internal/source`). This involves fetching latest commit for branches/tags if necessary.
+        -   [x] Retrieve its current locked state (raw `source` URL, `hash`) from `almd-lock.toml`, if an entry exists.
+    -   [x] Manual Verification: Test source resolution for branches, tags, and specific commits. Check retrieval from lockfile.
 
--   [ ] **Task 6.5: Comparison Logic and Update Decision**
-    -   [ ] For each dependency, determine if an update is required based on PRD logic:
-        -   [ ] Resolved target commit hash (from `project.toml` source) differs from locked commit hash.
-        -   [ ] Dependency in `project.toml` but missing from `almd-lock.toml`.
-        -   [ ] Local file at `path` is missing.
-        -   [ ] `--force` flag is used.
-    -   [ ] If none of the above, the dependency is considered up-to-date.
-    -   [ ] Manual Verification: Code review decision logic against PRD.
+-   [x] **Task 6.5: Comparison Logic and Update Decision**
+    -   [x] For each dependency, determine if an update is required based on PRD logic:
+        -   [x] Resolved target commit hash (from `project.toml` source) differs from locked commit hash.
+        -   [x] Dependency in `project.toml` but missing from `almd-lock.toml`.
+        -   [x] Local file at `path` is missing.
+        -   [x] `--force` flag is used.
+    -   [x] If none of the above, the dependency is considered up-to-date.
+    -   [x] Manual Verification: Code review decision logic against PRD.
 
--   [ ] **Task 6.6: Perform Update (If Required)**
-    -   [ ] For each dependency needing an update:
-        -   [ ] Download the file from the resolved target raw URL (using `internal/downloader`).
-        -   [ ] Calculate integrity hash (commit hash preferred, else SHA256 via `internal/hasher`).
-        -   [ ] Save the downloaded file to its `path` (from `project.toml`), creating parent directories if needed.
-        -   [ ] Update `almd-lock.toml`: store the exact raw download URL used, `path`, and new integrity `hash`. The `source` in `project.toml` remains (e.g., can still be a branch).
-    -   [ ] Manual Verification: Test a scenario where an update is performed. Check downloaded file content, path, and `almd-lock.toml` changes.
+-   [x] **Task 6.6: Perform Update (If Required)**
+    -   [x] For each dependency needing an update:
+        -   [x] Download the file from the resolved target raw URL (using `internal/downloader`).
+        -   [x] Calculate integrity hash (commit hash preferred, else SHA256 via `internal/hasher`).
+        -   [x] Save the downloaded file to its `path` (from `project.toml`), creating parent directories if needed.
+        -   [x] Update `almd-lock.toml`: store the exact raw download URL used, `path`, and new integrity `hash`. The `source` in `project.toml` remains (e.g., can still be a branch).
+    -   [x] Manual Verification: Test a scenario where an update is performed. Check downloaded file content, path, and `almd-lock.toml` changes.
 
--   [ ] **Task 6.7: Output and Error Handling**
-    -   [ ] Provide clear feedback: which dependencies checked, updated, already up-to-date.
-    -   [ ] Report errors clearly (e.g., download failure, source resolution failure, file write failure) via `urfave/cli`.
-    -   [ ] Manual Verification: Observe output for various scenarios (updates, no updates, errors).
+-   [x] **Task 6.7: Output and Error Handling**
+    -   [x] Provide clear feedback: which dependencies checked, updated, already up-to-date.
+    -   [x] Report errors clearly (e.g., download failure, source resolution failure, file write failure) via `urfave/cli`.
+    -   [x] Manual Verification: Observe output for various scenarios (updates, no updates, errors).
+
+-   [x] **Task 6.8: Fix Lint Errors in `update.go` (2025-05-08)**
+    -   [x] Corrected `lf.Packages` to `lf.Package` in `internal/cli/update/update.go`.
+    -   [x] Corrected type `project.LockPackageDetail` to `lockfile.PackageEntry` for lockfile map values in `internal/cli/update/update.go`.
 
 ## Milestone 7: `update` Command Testing
 
