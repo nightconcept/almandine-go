@@ -11,6 +11,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/nightconcept/almandine-go/internal/core/config"
+	"github.com/nightconcept/almandine-go/internal/core/lockfile"
 	"github.com/nightconcept/almandine-go/internal/core/project"
 	"github.com/nightconcept/almandine-go/internal/core/source"
 	"github.com/stretchr/testify/assert"
@@ -530,12 +531,101 @@ func TestAddCommand_ProjectTomlNotFound(t *testing.T) {
 	assert.True(t, os.IsNotExist(statErrProject), "project.toml should not have been created by the add command if it was missing and an error was expected")
 }
 
-// TODO: Task 3.4.7: Test `almd add` - Cleanup on Failure (e.g., Lockfile Write Error)
-// This test would involve:
-// 1. Mocking HTTP server to return a valid file.
-// 2. Ensuring project.toml exists and is valid.
-// 3. Simulating an error during the almd-lock.toml writing phase.
-//    - This might require instrumenting/mocking `lockfile.Write` or `toml.NewEncoder().Encode`
-//      for the lockfile, or making the lockfile path read-only temporarily.
-// 4. Verifying that the downloaded dependency file is removed.
-// 5. Verifying that project.toml is NOT reverted (as per current logic, it's updated before lockfile).
+func TestAddCommand_CleanupOnFailure_LockfileWriteError(t *testing.T) {
+	// This test implements Task 3.4.7
+
+	// --- Test Setup ---
+	initialTomlContent := `
+[package]
+name = "test-cleanup-project"
+version = "0.1.0"
+`
+	tempDir := setupAddTestEnvironment(t, initialTomlContent)
+	projectTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
+
+	mockContent := "// Mock library content for cleanup test\\nlocal m = {}\\nfunction m.do() return 'ok' end\\nreturn m"
+
+	// Adjusted mockFileURLPath to conform to the test mode parser's expected GitHub-like format
+	mockOwner := "testowner"
+	mockRepo := "testrepo"
+	mockRef := "main"
+	mockFileName := "mocklib.lua"
+	mockFileURLPath := fmt.Sprintf("/%s/%s/%s/%s", mockOwner, mockRepo, mockRef, mockFileName)
+
+	mockCommitSHA := "mockcleanupcommitsha1234567890"
+	// Mock for GitHub API call to get commit SHA
+	mockAPIPathForCommits := fmt.Sprintf("/repos/%s/%s/commits?path=%s&sha=%s&per_page=1", mockOwner, mockRepo, mockFileName, mockRef)
+	mockAPIResponseBody := fmt.Sprintf(`[{"sha": "%s"}]`, mockCommitSHA)
+
+	pathResps := map[string]struct {
+		Body string
+		Code int
+	}{
+		mockFileURLPath:       {Body: mockContent, Code: http.StatusOK},
+		mockAPIPathForCommits: {Body: mockAPIResponseBody, Code: http.StatusOK}, // Added mock for commit API
+	}
+	mockServer := startMockServer(t, pathResps)
+
+	// IMPORTANT: Override GithubAPIBaseURL to point to our mock server for this test to ensure commit API mock is hit.
+	// This was seen in other tests in internal/cli/add/add_test.go
+	originalGHAPIBaseURL := source.GithubAPIBaseURL
+	source.GithubAPIBaseURL = mockServer.URL
+	defer func() { source.GithubAPIBaseURL = originalGHAPIBaseURL }()
+
+	dependencyURL := mockServer.URL + mockFileURLPath
+
+	sourceFileName := mockFileName // Use the defined mockFileName
+	expectedDepName := strings.TrimSuffix(sourceFileName, filepath.Ext(sourceFileName))
+	defaultLibsDir := "src/lib"
+	expectedDownloadedFilePath := filepath.Join(tempDir, defaultLibsDir, sourceFileName)
+
+	lockFilePath := filepath.Join(tempDir, lockfile.LockfileName)
+	err := os.Mkdir(lockFilePath, 0755)
+	require.NoError(t, err, "Test setup: Failed to create %s as a directory", lockfile.LockfileName)
+
+	// --- Run Command ---
+	cmdErr := runAddCommand(t, tempDir, dependencyURL)
+
+	// --- Assertions ---
+	require.Error(t, cmdErr, "almd add command should return an error due to lockfile write failure")
+
+	if exitErr, ok := cmdErr.(cli.ExitCoder); ok {
+		errorOutput := strings.ToLower(exitErr.Error())
+		assert.Contains(t, errorOutput, "lockfile", "Error message should mention 'lockfile'")
+		assert.Contains(t, errorOutput, lockfile.LockfileName, "Error message should mention the lockfile name")
+		// Check for OS-specific parts of the error like "is a directory" or a TOML encoding error for the lockfile
+		// This makes the test more robust if the exact wording changes slightly.
+		assert.Condition(t, func() bool {
+			return strings.Contains(errorOutput, "is a directory") ||
+				strings.Contains(errorOutput, "toml") || // If TOML marshal fails due to directory
+				strings.Contains(errorOutput, "permission denied") // Another possible OS error
+		}, "Error message details should indicate a write/type issue with the lockfile path: %s", errorOutput)
+	} else {
+		// Handle cases where the error might not be a cli.ExitCoder but a direct error
+		// (though urfave/cli usually wraps errors in ExitCoder for command actions).
+		lowerCmdErr := strings.ToLower(cmdErr.Error())
+		assert.Contains(t, lowerCmdErr, "lockfile", "Direct error message should mention 'lockfile': %v", cmdErr)
+		assert.Fail(t, "Expected command error to be a cli.ExitCoder, got %T: %v", cmdErr, cmdErr)
+	}
+
+	_, statErr := os.Stat(expectedDownloadedFilePath)
+	assert.True(t, os.IsNotExist(statErr),
+		"Downloaded dependency file '%s' should have been removed after lockfile write failure.", expectedDownloadedFilePath)
+
+	projCfg := readProjectToml(t, projectTomlPath)
+	depEntry, ok := projCfg.Dependencies[expectedDepName]
+	require.True(t, ok, "Dependency '%s' should still be listed in project.toml. Current dependencies: %v", expectedDepName, projCfg.Dependencies)
+
+	// The canonical source will now be a GitHub-like source string
+	expectedCanonicalSource := fmt.Sprintf("github:%s/%s/%s@%s", mockOwner, mockRepo, mockFileName, mockRef)
+	assert.Equal(t, expectedCanonicalSource, depEntry.Source, "Dependency source in project.toml for '%s' is incorrect", expectedDepName)
+	assert.Equal(t, filepath.ToSlash(filepath.Join(defaultLibsDir, sourceFileName)), depEntry.Path,
+		"Dependency path in project.toml is incorrect for '%s'", expectedDepName)
+
+	lockFileStat, statLockErr := os.Stat(lockFilePath)
+	require.NoError(t, statLockErr, "Should be able to stat the %s path (which is a directory)", lockfile.LockfileName)
+	assert.True(t, lockFileStat.IsDir(), "%s should remain a directory", lockfile.LockfileName)
+
+	_, err = os.ReadFile(lockFilePath)
+	require.Error(t, err, "Attempting to read %s (which is a dir) as a file should fail", lockfile.LockfileName)
+}

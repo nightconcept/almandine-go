@@ -1,4 +1,3 @@
-// Package commands contains the definitions for the almd CLI commands.
 package initcmd
 
 import (
@@ -7,28 +6,10 @@ import (
 	"os"
 	"strings"
 
-	// "github.com/BurntSushi/toml" // No longer directly used here
 	"github.com/nightconcept/almandine-go/internal/core/config"
 	"github.com/nightconcept/almandine-go/internal/core/project"
 	"github.com/urfave/cli/v2"
 )
-
-// --- Structs for project.toml --- // These are now removed and defined in internal/project/project.go
-//
-// // PackageMeta holds the metadata for the [package] section
-// type PackageMeta struct {
-// Name        string `toml:"name"`
-// Version     string `toml:"version"`
-// Description string `toml:"description,omitempty"` // Use omitempty for optional fields
-// License     string `toml:"license"`
-// }
-//
-// // ProjectConfig represents the overall structure of project.toml
-// type ProjectConfig struct {
-// Package      PackageMeta       `toml:"package"`
-// Scripts      map[string]string `toml:"scripts"`
-// Dependencies map[string]string `toml:"dependencies,omitempty"` // Use omitempty if no dependencies
-// }
 
 // Helper function to prompt user and get input with a default value
 func promptWithDefault(reader *bufio.Reader, promptText string, defaultValue string) (string, error) {
