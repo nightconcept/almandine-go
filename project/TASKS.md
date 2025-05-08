@@ -309,7 +309,7 @@
             -   `almd-lock.toml` is processed (attempt to remove, no error if not found).
             -   Dependency file deleted.
             -   Command completes successfully or with a notice about the lockfile state.
-    -   [ ] **Sub-Task 5.2.7: Test `almd remove` - Empty `project.toml` or `almd-lock.toml`**
-        -   [ ] Setup: Temp dir with empty `project.toml` and/or `almd-lock.toml`.
-        -   [ ] Execute: `almd remove <dependency_name>`.
+    -   [x] **Sub-Task 5.2.7: Test `almd remove` - Empty `project.toml` or `almd-lock.toml`**
+        -   [x] Setup: Temp dir with empty `project.toml` and/or `almd-lock.toml`.
+        -   [x] Execute: `almd remove <dependency_name>`.
         -   [ ] Verify: Command returns an error indicating dependency not found, and files remain empty or unchanged.

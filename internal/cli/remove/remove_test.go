@@ -356,22 +356,61 @@ hash = "sha256:789"
 	// Here, we just ensure 'manifestonlylib.lua' is gone.
 }
 
+func TestRemoveCommand_EmptyProjectToml(t *testing.T) {
+	originalWd, err := os.Getwd()
+	require.NoError(t, err, "Failed to get current working directory")
+	defer func() {
+		require.NoError(t, os.Chdir(originalWd), "Failed to restore original working directory")
+	}()
+
+	// Setup: Temp dir with empty project.toml and empty almd-lock.toml.
+	tempDir := setupRemoveTestEnvironment(t, "", "", nil)
+
+	err = os.Chdir(tempDir)
+	require.NoError(t, err, "Failed to change to temporary directory")
+
+	depNameToRemove := "any-dep"
+
+	// Execute: almd remove <dependency_name>
+	err = runRemoveCommand(t, tempDir, depNameToRemove)
+
+	// Verify: Command returns an error indicating dependency not found
+	require.Error(t, err, "Expected an error when project.toml is empty")
+
+	exitErr, ok := err.(cli.ExitCoder)
+	require.True(t, ok, "Error should be a cli.ExitCoder")
+	assert.Equal(t, 1, exitErr.ExitCode(), "Expected exit code 1")
+	// The error message comes from internal/cli/remove/remove.go, specifically from trying to load and find the dep.
+	// If project.toml is empty, config.LoadProject will succeed but proj.Dependencies will be nil or empty.
+	// The remove command should then indicate that no dependencies exist to be removed.
+	assert.Equal(t, "Error: No dependencies found in project.toml.", exitErr.Error())
+
+	// Verify: files remain empty or unchanged.
+	projectTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
+	projectTomlBytes, err := os.ReadFile(projectTomlPath)
+	require.NoError(t, err, "Failed to read project.toml after command")
+	assert.Equal(t, "", string(projectTomlBytes), "project.toml should remain empty")
+
+	lockfilePath := filepath.Join(tempDir, lockfile.LockfileName)
+	lockfileBytes, err := os.ReadFile(lockfilePath)
+	require.NoError(t, err, "Failed to read almd-lock.toml after command")
+	assert.Equal(t, "", string(lockfileBytes), "almd-lock.toml should remain empty")
+}
+
 // Helper Functions
 func setupRemoveTestEnvironment(t *testing.T, initialProjectTomlContent string, initialLockfileContent string, depFiles map[string]string) (tempDir string) {
 	t.Helper()
 	tempDir = t.TempDir()
 
-	if initialProjectTomlContent != "" {
-		projectTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
-		err := os.WriteFile(projectTomlPath, []byte(initialProjectTomlContent), 0644)
-		require.NoError(t, err, "Failed to write initial project.toml")
-	}
+	// Always create project.toml, using provided content (empty string means empty file)
+	projectTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
+	err := os.WriteFile(projectTomlPath, []byte(initialProjectTomlContent), 0644)
+	require.NoError(t, err, "Failed to write project.toml")
 
-	if initialLockfileContent != "" {
-		lockfilePath := filepath.Join(tempDir, lockfile.LockfileName)
-		err := os.WriteFile(lockfilePath, []byte(initialLockfileContent), 0644)
-		require.NoError(t, err, "Failed to write initial almd-lock.toml")
-	}
+	// Always create almd-lock.toml, using provided content (empty string means empty file)
+	lockfilePath := filepath.Join(tempDir, lockfile.LockfileName)
+	err = os.WriteFile(lockfilePath, []byte(initialLockfileContent), 0644)
+	require.NoError(t, err, "Failed to write almd-lock.toml")
 
 	for relPath, content := range depFiles {
 		absPath := filepath.Join(tempDir, relPath)
