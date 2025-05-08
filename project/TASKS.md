@@ -176,6 +176,8 @@
 -   [ ] **Task 3.3: Implement `init` Command Test Cases (Existing)**
     -   [x] Basic `init` test case (as in `commands/init_test.go`).
     -   [x] `init` test case with defaults and empty inputs (as in `commands/init_test.go`).
+    -   [x] **Sub-Task 3.3.1: Fix `TestInitCommand` failure "project.toml\project.toml: The system cannot find the path specified." (2025-05-08)**
+        -   [x] Changed `config.WriteProjectToml("project.toml", ...)` to `config.WriteProjectToml(".", ...)` in `internal/cli/initcmd/initcmd.go` to correctly specify the current directory for `project.toml` creation.
 
 -   [ ] **Task 3.4: Implement `add` Command Unit Test Cases**
     -   [x] **Sub-Task 3.4.1: Setup for `add` tests in `commands/add_test.go`**

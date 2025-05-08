@@ -156,7 +156,8 @@ func GetInitCommand() *cli.Command {
 			}
 
 			// Write to project.toml using the centralized function
-			err = config.WriteProjectToml("project.toml", &projectData)
+			// Pass "." for current directory, as WriteProjectToml expects a directory path.
+			err = config.WriteProjectToml(".", &projectData)
 			if err != nil {
 				return cli.Exit(fmt.Sprintf("Error writing project.toml: %v", err), 1)
 			}
