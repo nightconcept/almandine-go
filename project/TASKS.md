@@ -390,11 +390,11 @@
         -   [x] Setup: `project.toml` specifies `depA@main`. `almd-lock.toml` has `depA` at `commit1`. Mock server resolves `main` for `depA` to `commit2` and serves new content.
         -   [x] Execute: `almd install`.
         -   [x] Verify: `depA` file updated, `almd-lock.toml` updated for `depA` to `commit2`. Other up-to-date deps untouched.
-    -   [ ] **Sub-Task 7.2.2: Test `almd install <dep_name>` - Specific dependency install**
-        -   [ ] Setup: Similar to 7.2.1, but also `depB` needs update.
-        -   [ ] Execute: `almd install depA`.
-        -   [ ] Verify: Only `depA` is updated. `depB` remains as per old lockfile.
-    -   [ ] **Sub-Task 7.2.3: Test `almd install` - All dependencies up-to-date**
+    -   [x] **Sub-Task 7.2.2: Test `almd install <dep_name>` - Specific dependency install**
+        -   [x] Setup: Similar to 7.2.1, but also `depB` needs update.
+        -   [x] Execute: `almd install depA`.
+        -   [x] Verify: Only `depA` is updated. `depB` remains as per old lockfile.
+    -   [x] **Sub-Task 7.2.3: Test `almd install` - All dependencies up-to-date**
         -   [ ] Setup: `project.toml` sources resolve to same commits as in `almd-lock.toml`. Local files exist.
         -   [ ] Execute: `almd install`.
         -   [ ] Verify: No files downloaded, no changes to `almd-lock.toml`. Appropriate "up-to-date" messages.

@@ -238,3 +238,204 @@ hash = "commit:commit1_sha_abcdef1234567890"
 	require.True(t, ok, "depA entry not found in project.toml")
 	assert.Equal(t, fmt.Sprintf("github:testowner/testrepo/%s@main", depAPath), depAProjEntry.Source, "project.toml source for depA should not change")
 }
+
+// Task 7.2.2: Test `almd install <dep_name>` - Specific dependency install
+func TestInstallCommand_SpecificDepInstall_OneNeedsUpdate(t *testing.T) {
+	depAName := "depA"
+	depAPath := "libs/depA.lua"
+	depAOriginalContent := "local depA_v1 = true"
+	depANewContent := "local depA_v2 = true; print('updated A')"
+	depACommit1HexSHA := "abcdef1234567890abcdef1234567890" // Valid hex
+	depACommit2HexSHA := "fedcba0987654321fedcba0987654321" // Valid hex
+
+	depBName := "depB"
+	depBPath := "modules/depB.lua"
+	depBOriginalContent := "local depB_v1 = true"
+	depBNewContent := "local depB_v2 = true; print('updated B')" // Should not be used
+	depBCommit1HexSHA := "1234567890abcdef1234567890abcdef"      // Valid hex
+	depBCommit2HexSHA := "0987654321fedcba0987654321fedcba"      // Valid hex
+
+	initialProjectToml := fmt.Sprintf(`
+[package]
+name = "test-specific-install"
+version = "0.1.0"
+
+[dependencies.%s]
+source = "github:testowner/testrepo/%s@main"
+path = "%s"
+
+[dependencies.%s]
+source = "github:anotherowner/anotherrepo/%s@main"
+path = "%s"
+`, depAName, depAPath, depAPath, depBName, depBPath, depBPath)
+
+	initialLockfile := fmt.Sprintf(`
+api_version = "1"
+
+[package.%s]
+source = "https://raw.githubusercontent.com/testowner/testrepo/%s/%s"
+path = "%s"
+hash = "commit:%s"
+
+[package.%s]
+source = "https://raw.githubusercontent.com/anotherowner/anotherrepo/%s/%s"
+path = "%s"
+hash = "commit:%s"
+`, depAName, depACommit1HexSHA, depAPath, depAPath, depACommit1HexSHA,
+		depBName, depBCommit1HexSHA, depBPath, depBPath, depBCommit1HexSHA)
+
+	mockFiles := map[string]string{
+		depAPath: depAOriginalContent,
+		depBPath: depBOriginalContent,
+	}
+
+	tempDir := setupInstallTestEnvironment(t, initialProjectToml, initialLockfile, mockFiles)
+
+	// Mock server setup
+	githubAPIPathForDepA := fmt.Sprintf("/repos/testowner/testrepo/commits?path=%s&sha=main&per_page=1", depAPath)
+	githubAPIResponseForDepA := fmt.Sprintf(`[{"sha": "%s"}]`, depACommit2HexSHA)
+	rawDownloadPathDepA := fmt.Sprintf("/testowner/testrepo/%s/%s", depACommit2HexSHA, depAPath)
+
+	githubAPIPathForDepB := fmt.Sprintf("/repos/anotherowner/anotherrepo/commits?path=%s&sha=main&per_page=1", depBPath)
+	githubAPIResponseForDepB := fmt.Sprintf(`[{"sha": "%s"}]`, depBCommit2HexSHA)
+	rawDownloadPathDepB := fmt.Sprintf("/anotherowner/anotherrepo/%s/%s", depBCommit2HexSHA, depBPath)
+
+	pathResps := map[string]struct {
+		Body string
+		Code int
+	}{
+		githubAPIPathForDepA: {Body: githubAPIResponseForDepA, Code: http.StatusOK},
+		rawDownloadPathDepA:  {Body: depANewContent, Code: http.StatusOK},
+		githubAPIPathForDepB: {Body: githubAPIResponseForDepB, Code: http.StatusOK}, // depB might be checked by source resolver even if not installed
+		rawDownloadPathDepB:  {Body: depBNewContent, Code: http.StatusOK},           // Should not be called
+	}
+	mockServer := startMockHTTPServer(t, pathResps)
+
+	originalGHAPIBaseURL := source.GithubAPIBaseURL
+	source.GithubAPIBaseURL = mockServer.URL
+	defer func() { source.GithubAPIBaseURL = originalGHAPIBaseURL }()
+
+	// --- Run Command for depA only ---
+	err := runInstallCommand(t, tempDir, depAName)
+	require.NoError(t, err, "almd install %s command failed", depAName)
+
+	// --- Assertions for depA ---
+	depAFilePath := filepath.Join(tempDir, depAPath)
+	updatedContentBytesA, readErrA := os.ReadFile(depAFilePath)
+	require.NoError(t, readErrA, "Failed to read updated depA file: %s", depAFilePath)
+	assert.Equal(t, depANewContent, string(updatedContentBytesA), "depA file content mismatch after specific install")
+
+	lockFilePath := filepath.Join(tempDir, lockfile.LockfileName)
+	updatedLockCfg := readAlmdLockToml(t, lockFilePath)
+	require.NotNil(t, updatedLockCfg.Package, "Packages map in almd-lock.toml is nil")
+
+	depALockEntry, okA := updatedLockCfg.Package[depAName]
+	require.True(t, okA, "depA entry not found in almd-lock.toml after specific install")
+	expectedLockSourceURLA := mockServer.URL + rawDownloadPathDepA
+	assert.Equal(t, expectedLockSourceURLA, depALockEntry.Source, "depA lockfile source URL mismatch")
+	assert.Equal(t, "commit:"+depACommit2HexSHA, depALockEntry.Hash, "depA lockfile hash mismatch")
+
+	// --- Assertions for depB (should be unchanged) ---
+	depBFilePath := filepath.Join(tempDir, depBPath)
+	contentBytesB, readErrB := os.ReadFile(depBFilePath)
+	require.NoError(t, readErrB, "Failed to read depB file: %s", depBFilePath)
+	assert.Equal(t, depBOriginalContent, string(contentBytesB), "depB file content should not have changed")
+
+	depBLockEntry, okB := updatedLockCfg.Package[depBName]
+	require.True(t, okB, "depB entry not found in almd-lock.toml")
+	expectedLockSourceURLBOriginal := fmt.Sprintf("https://raw.githubusercontent.com/anotherowner/anotherrepo/%s/%s", depBCommit1HexSHA, depBPath) // Original URL
+	assert.Equal(t, expectedLockSourceURLBOriginal, depBLockEntry.Source, "depB lockfile source URL should be unchanged")
+	assert.Equal(t, "commit:"+depBCommit1HexSHA, depBLockEntry.Hash, "depB lockfile hash should be unchanged")
+
+	// Verify project.toml remains unchanged
+	projTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
+	currentProjCfg := readProjectToml(t, projTomlPath)
+	depAProjEntry := currentProjCfg.Dependencies[depAName]
+	assert.Equal(t, fmt.Sprintf("github:testowner/testrepo/%s@main", depAPath), depAProjEntry.Source)
+	depBProjEntry := currentProjCfg.Dependencies[depBName]
+	assert.Equal(t, fmt.Sprintf("github:anotherowner/anotherrepo/%s@main", depBPath), depBProjEntry.Source)
+}
+
+// Task 7.2.3: Test `almd install` - All dependencies up-to-date
+func TestInstallCommand_AllDepsUpToDate(t *testing.T) {
+	depAName := "depA"
+	depAPath := "libs/depA.lua"
+	depAContent := "local depA_v_current = true"
+	depACommitCurrentSHA := "commitA_sha_current12345"
+
+	initialProjectToml := fmt.Sprintf(`
+[package]
+name = "test-uptodate-project"
+version = "0.1.0"
+
+[dependencies.%s]
+source = "github:testowner/testrepo/%s@main"
+path = "%s"
+`, depAName, depAPath, depAPath)
+
+	// Lockfile points to the current commit, and local file matches this version
+	initialLockfile := fmt.Sprintf(`
+api_version = "1"
+
+[package.%s]
+source = "https://raw.githubusercontent.com/testowner/testrepo/%s/%s"
+path = "%s"
+hash = "commit:%s"
+`, depAName, depACommitCurrentSHA, depAPath, depAPath, depACommitCurrentSHA)
+
+	mockFiles := map[string]string{
+		depAPath: depAContent, // Local file exists and is "current"
+	}
+
+	tempDir := setupInstallTestEnvironment(t, initialProjectToml, initialLockfile, mockFiles)
+
+	// Mock server setup
+	// GitHub API call to resolve 'main' for depA should return the *same* current SHA
+	githubAPIPathForDepA := fmt.Sprintf("/repos/testowner/testrepo/commits?path=%s&sha=main&per_page=1", depAPath)
+	githubAPIResponseForDepA := fmt.Sprintf(`[{"sha": "%s"}]`, depACommitCurrentSHA)
+
+	// Raw download path - should ideally not be called if dep is up-to-date.
+	// If it were called, it would serve the same content.
+	rawDownloadPathDepA := fmt.Sprintf("/testowner/testrepo/%s/%s", depACommitCurrentSHA, depAPath)
+
+	pathResps := map[string]struct {
+		Body string
+		Code int
+	}{
+		githubAPIPathForDepA: {Body: githubAPIResponseForDepA, Code: http.StatusOK},
+		rawDownloadPathDepA:  {Body: depAContent, Code: http.StatusOK}, // Should not be fetched
+	}
+	mockServer := startMockHTTPServer(t, pathResps)
+
+	originalGHAPIBaseURL := source.GithubAPIBaseURL
+	source.GithubAPIBaseURL = mockServer.URL
+	defer func() { source.GithubAPIBaseURL = originalGHAPIBaseURL }()
+
+	// --- Run Command ---
+	err := runInstallCommand(t, tempDir) // Install all
+	require.NoError(t, err, "almd install command failed")
+
+	// --- Assertions ---
+	// 1. Verify depA file content is UNCHANGED
+	depAFilePath := filepath.Join(tempDir, depAPath)
+	currentContentBytes, readErr := os.ReadFile(depAFilePath)
+	require.NoError(t, readErr, "Failed to read depA file: %s", depAFilePath)
+	assert.Equal(t, depAContent, string(currentContentBytes), "depA file content should be unchanged")
+
+	// 2. Verify almd-lock.toml is UNCHANGED
+	lockFilePath := filepath.Join(tempDir, lockfile.LockfileName)
+	currentLockCfg := readAlmdLockToml(t, lockFilePath) // Read current
+	originalLockCfg := lockfile.Lockfile{}              // For comparison
+	errUnmarshal := toml.Unmarshal([]byte(initialLockfile), &originalLockCfg)
+	require.NoError(t, errUnmarshal, "Failed to unmarshal original lockfile content for comparison")
+
+	assert.Equal(t, originalLockCfg, currentLockCfg, "almd-lock.toml should be unchanged")
+
+	// 3. Verify project.toml remains unchanged
+	projTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
+	currentProjCfg := readProjectToml(t, projTomlPath)
+	originalProjCfg := project.Project{}
+	errUnmarshalProj := toml.Unmarshal([]byte(initialProjectToml), &originalProjCfg)
+	require.NoError(t, errUnmarshalProj, "Failed to unmarshal original project.toml content for comparison")
+	assert.Equal(t, originalProjCfg, currentProjCfg, "project.toml should be unchanged")
+}
