@@ -8,6 +8,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/nightconcept/almandine-go/internal/core/config"
 	"github.com/nightconcept/almandine-go/internal/core/lockfile"
+	"github.com/nightconcept/almandine-go/internal/core/project" // Added import
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
@@ -171,6 +172,83 @@ hash = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 	// Verify the existing dependency file was not touched
 	_, err = os.Stat(filepath.Join(existingDepDir, "existing-dep.lua"))
 	assert.NoError(t, err, "existing dependency file should not be deleted")
+}
+
+func TestRemoveCommand_DepFileMissing_StillUpdatesManifests(t *testing.T) {
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		require.NoError(t, os.Chdir(originalWd))
+	}()
+
+	projectTomlContent := `
+[package]
+name = "test-project-missing-file"
+version = "0.1.0"
+
+[dependencies]
+missinglib = { source = "github:user/repo/missing.lua@def456", path = "libs/missinglib.lua" }
+anotherlib = { source = "github:user/repo/another.lua@ghi789", path = "libs/anotherlib.lua" }
+`
+	lockTomlContent := `
+api_version = "1"
+
+[package.missinglib]
+source = "https://raw.githubusercontent.com/user/repo/def456/missing.lua"
+path = "libs/missinglib.lua"
+hash = "sha256:123"
+
+[package.anotherlib]
+source = "https://raw.githubusercontent.com/user/repo/ghi789/another.lua"
+path = "libs/anotherlib.lua"
+hash = "sha256:456"
+`
+	// Setup environment: Create project.toml and almd-lock.toml
+	// but DO NOT create the actual 'missinglib.lua' file.
+	// Only create 'anotherlib.lua' to ensure other files are not affected.
+	depFilesToCreate := map[string]string{
+		"libs/anotherlib.lua": "-- another lib content",
+	}
+	tempDir := setupRemoveTestEnvironment(t, projectTomlContent, lockTomlContent, depFilesToCreate)
+
+	err = os.Chdir(tempDir)
+	require.NoError(t, err, "Failed to change to temporary directory")
+
+	// Run the remove command for 'missinglib'
+	// This should not return an error that stops processing,
+	// as remove.go handles os.IsNotExist for the file deletion.
+	err = runRemoveCommand(t, tempDir, "missinglib")
+	require.NoError(t, err, "runRemoveCommand should not return a fatal error when dep file is missing")
+
+	// Verify project.toml is updated (missinglib removed, anotherlib remains)
+	var projData struct {
+		Dependencies map[string]project.Dependency `toml:"dependencies"`
+	}
+	projBytes, err := os.ReadFile(filepath.Join(tempDir, config.ProjectTomlName))
+	require.NoError(t, err)
+	err = toml.Unmarshal(projBytes, &projData)
+	require.NoError(t, err)
+	assert.NotContains(t, projData.Dependencies, "missinglib", "missinglib should be removed from project.toml")
+	assert.Contains(t, projData.Dependencies, "anotherlib", "anotherlib should still exist in project.toml")
+
+	// Verify almd-lock.toml is updated (missinglib removed, anotherlib remains)
+	var lockData struct {
+		Package map[string]lockfile.PackageEntry `toml:"package"`
+	}
+	lockBytes, err := os.ReadFile(filepath.Join(tempDir, lockfile.LockfileName))
+	require.NoError(t, err)
+	err = toml.Unmarshal(lockBytes, &lockData)
+	require.NoError(t, err)
+	assert.NotContains(t, lockData.Package, "missinglib", "missinglib should be removed from almd-lock.toml")
+	assert.Contains(t, lockData.Package, "anotherlib", "anotherlib should still exist in almd-lock.toml")
+
+	// Verify the 'anotherlib.lua' file still exists
+	_, err = os.Stat(filepath.Join(tempDir, "libs", "anotherlib.lua"))
+	assert.NoError(t, err, "anotherlib.lua should still exist")
+
+	// Verify 'missinglib.lua' (which never existed) is still not there
+	_, err = os.Stat(filepath.Join(tempDir, "libs", "missinglib.lua"))
+	assert.True(t, os.IsNotExist(err), "missinglib.lua should not exist")
 }
 
 // Helper Functions

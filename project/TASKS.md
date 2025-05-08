@@ -289,15 +289,15 @@
             -   Command returns an appropriate error.
             -   `project.toml` and `almd-lock.toml` remain unchanged.
             -   No file deletion attempted for the non-existent dependency.
-    -   [ ] **Sub-Task 5.2.4: Test `almd remove` - Error: Dependency File Not Found for Deletion**
-        -   [ ] Setup: Temp dir with `project.toml` and `almd-lock.toml` listing a dependency, but the actual dependency file is missing.
-        -   [ ] Execute: `almd remove <dependency_name>`.
-        -   [ ] Verify:
-            -   Dependency entry removed from `project.toml`.
-            -   Dependency entry removed from `almd-lock.toml`.
-            -   Command may return a warning or error about file deletion failure, but manifest/lockfile changes should persist.
-            -   PRD: "Handles potential errors gracefully (e.g., file not found, permissions)."
-    -   [ ] **Sub-Task 5.2.5: Test `almd remove` - Error: `project.toml` Not Found**
+           -   [x] **Sub-Task 5.2.4: Test `almd remove` - Error: Dependency File Not Found for Deletion**
+            -   [x] Setup: Temp dir with `project.toml` and `almd-lock.toml` listing a dependency, but the actual dependency file is missing.
+            -   [x] Execute: `almd remove <dependency_name>`.
+        -   [x] Verify:
+        	-   Dependency entry removed from `project.toml`.
+        	-   Dependency entry removed from `almd-lock.toml`.
+        	-   Command may return a warning or error about file deletion failure, but manifest/lockfile changes should persist.
+        	-   PRD: "Handles potential errors gracefully (e.g., file not found, permissions)."
+       -   [ ] **Sub-Task 5.2.5: Test `almd remove` - Error: `project.toml` Not Found**
         -   [ ] Setup: Run `remove` in a temp dir without `project.toml`.
         -   [ ] Execute: `almd remove <dependency_name>`.
         -   [ ] Verify: Command returns an appropriate error.
