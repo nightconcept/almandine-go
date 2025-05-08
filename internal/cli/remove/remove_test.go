@@ -251,6 +251,36 @@ hash = "sha256:456"
 	assert.True(t, os.IsNotExist(err), "missinglib.lua should not exist")
 }
 
+func TestRemoveCommand_ProjectTomlNotFound(t *testing.T) {
+	originalWd, err := os.Getwd()
+	require.NoError(t, err, "Failed to get current working directory")
+	defer func() {
+		require.NoError(t, os.Chdir(originalWd), "Failed to restore original working directory")
+	}()
+
+	tempDir := t.TempDir()
+
+	// Change to temp directory (which has no project.toml)
+	err = os.Chdir(tempDir)
+	require.NoError(t, err, "Failed to change to temporary directory: %s", tempDir)
+
+	// Attempt to remove a dependency
+	err = runRemoveCommand(t, tempDir, "any-dependency-name")
+
+	// Verify the error
+	require.Error(t, err, "Expected an error when project.toml is not found")
+
+	// Check for cli.ExitCoder interface for specific exit code and message
+	exitErr, ok := err.(cli.ExitCoder)
+	require.True(t, ok, "Error should be a cli.ExitCoder")
+
+	assert.Equal(t, 1, exitErr.ExitCode(), "Expected exit code 1")
+	// The initial os.Stat check in remove.go returns "dependency not found"
+	// when project.toml is missing.
+	expectedErrorMsg := "dependency not found"
+	assert.Equal(t, expectedErrorMsg, exitErr.Error(), "Error message mismatch")
+}
+
 // Helper Functions
 func setupRemoveTestEnvironment(t *testing.T, initialProjectTomlContent string, initialLockfileContent string, depFiles map[string]string) (tempDir string) {
 	t.Helper()
