@@ -378,18 +378,18 @@
 
 **Goal:** Implement unit tests for the `install` command.
 
--   [ ] **Task 7.1: Test File Structure and Helpers for `install`**
-    -   [ ] Create test file: `internal/cli/install/install_test.go`.
-    -   [ ] Develop test helpers:
-        -   `setupInstallTestEnvironment(...)`: Creates temp dir, `project.toml`, `almd-lock.toml`, mock dependency files.
-        -   `runInstallCommand(...)`: Executes the `install` command's action with specified args and context.
-        -   Mock HTTP server setup (similar to `add` command tests) for controlling download responses and simulating remote changes.
+-   [x] **Task 7.1: Test File Structure and Helpers for `install` (2025-05-08)**
+    -   [x] Create test file: `internal/cli/install/install_test.go`.
+    -   [x] Develop test helpers:
+        -   [x] `setupInstallTestEnvironment(...)`: Creates temp dir, `project.toml`, `almd-lock.toml`, mock dependency files.
+        -   [x] `runInstallCommand(...)`: Executes the `install` command's action with specified args and context.
+        -   [x] Mock HTTP server setup (similar to `add` command tests) for controlling download responses and simulating remote changes.
 
 -   [ ] **Task 7.2: Implement `install` Command Unit Test Cases**
-    -   [ ] **Sub-Task 7.2.1: Test `almd install` - All dependencies, one needs install (commit hash change)**
-        -   [ ] Setup: `project.toml` specifies `depA@main`. `almd-lock.toml` has `depA` at `commit1`. Mock server resolves `main` for `depA` to `commit2` and serves new content.
-        -   [ ] Execute: `almd install`.
-        -   [ ] Verify: `depA` file updated, `almd-lock.toml` updated for `depA` to `commit2`. Other up-to-date deps untouched.
+    -   [x] **Sub-Task 7.2.1: Test `almd install` - All dependencies, one needs install (commit hash change) (2025-05-08)**
+        -   [x] Setup: `project.toml` specifies `depA@main`. `almd-lock.toml` has `depA` at `commit1`. Mock server resolves `main` for `depA` to `commit2` and serves new content.
+        -   [x] Execute: `almd install`.
+        -   [x] Verify: `depA` file updated, `almd-lock.toml` updated for `depA` to `commit2`. Other up-to-date deps untouched.
     -   [ ] **Sub-Task 7.2.2: Test `almd install <dep_name>` - Specific dependency install**
         -   [ ] Setup: Similar to 7.2.1, but also `depB` needs update.
         -   [ ] Execute: `almd install depA`.

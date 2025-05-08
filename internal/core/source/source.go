@@ -60,7 +60,16 @@ func ParseSourceURL(sourceURL string) (*ParsedSourceInfo, error) {
 			return nil, fmt.Errorf("invalid github shorthand source '%s': owner, repo, or path/filename cannot be empty", sourceURL)
 		}
 
-		rawURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, ref, pathInRepo)
+		var rawURL string
+		if testModeBypassHostValidation {
+			// In test mode, construct the RawURL using the (potentially mocked) GithubAPIBaseURL
+			// and the expected path structure for raw content.
+			// GithubAPIBaseURL in tests is mockServer.URL (e.g., http://127.0.0.1:XYZ)
+			// The path should be /<owner>/<repo>/<ref>/<path_to_file...>
+			rawURL = fmt.Sprintf("%s/%s/%s/%s/%s", GithubAPIBaseURL, owner, repo, ref, pathInRepo)
+		} else {
+			rawURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, ref, pathInRepo)
+		}
 
 		return &ParsedSourceInfo{
 			RawURL:            rawURL,
