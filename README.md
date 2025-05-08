@@ -52,6 +52,14 @@ Builds the `almd` binary.
 go build -o build/almd ./cmd/almd
 ```
 
+### build-win
+
+Builds the `almd.exe` binary.
+
+```sh
+go build -o build/almd.exe ./cmd/almd
+```
+
 ### test
 
 Run tests.

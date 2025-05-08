@@ -215,18 +215,18 @@
 
 **Goal:** Implement the `almd remove <dependency_name>` command to remove a dependency from the project.
 
--   [ ] **Task 4.1: `urfave/cli` Command Setup**
-    -   [ ] Define the `remove` command structure (`cli.Command`) in `commands/remove.go` (or `internal/cli/remove/remove.go` as per PRD folder structure).
-    -   [ ] Add the command to the `urfave/cli` App in `main.go`.
-    -   [ ] Define the required `<dependency_name>` argument.
-    -   [ ] Manual Verification: Run `almd remove --help` and confirm the command and argument are listed correctly. Run `almd remove some-dep` and verify the argument value is accessible within the (currently empty) action.
+-   [x] **Task 4.1: `urfave/cli` Command Setup**
+    -   [x] Define the `remove` command structure (`cli.Command`) in `commands/remove.go` (or `internal/cli/remove/remove.go` as per PRD folder structure).
+    -   [x] Add the command to the `urfave/cli` App in `main.go`.
+    -   [x] Define the required `<dependency_name>` argument.
+    -   [x] Manual Verification: Run `almd remove --help` and confirm the command and argument are listed correctly. Run `almd remove some-dep` and verify the argument value is accessible within the (currently empty) action.
 
--   [ ] **Task 4.2: Implement Manifest Loading and Dependency Path Retrieval**
-    -   [ ] Add logic within the `remove` command's `Action` to load `project.toml` (using `internal/config`).
-    -   [ ] Verify if the specified `<dependency_name>` exists in the `[dependencies]` table.
-    -   [ ] If it exists, retrieve the relative `path` of the dependency.
-    -   [ ] Handle errors if `project.toml` is not found or the dependency does not exist.
-    -   [ ] Manual Verification: Test with an existing `project.toml`. Try removing an existing and a non-existing dependency. Check error messages.
+-   [x] **Task 4.2: Implement Manifest Loading and Dependency Path Retrieval**
+    -   [x] Add logic within the `remove` command's `Action` to load `project.toml` (using `internal/config`).
+    -   [x] Verify if the specified `<dependency_name>` exists in the `[dependencies]` table.
+    -   [x] If it exists, retrieve the relative `path` of the dependency.
+    -   [x] Handle errors if `project.toml` is not found or the dependency does not exist.
+    -   [x] Manual Verification: Test with an existing `project.toml`. Try removing an existing and a non-existing dependency. Check error messages.
 
 -   [ ] **Task 4.3: Implement Manifest Update and File Deletion**
     -   [ ] Remove the entry for `<dependency_name>` from the `[dependencies]` table in the loaded manifest data.

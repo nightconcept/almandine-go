@@ -12,6 +12,7 @@ import (
 
 	"github.com/nightconcept/almandine-go/internal/cli/add"
 	"github.com/nightconcept/almandine-go/internal/cli/initcmd"
+	"github.com/nightconcept/almandine-go/internal/cli/remove"
 )
 
 // The main function, where the program execution begins.
@@ -28,6 +29,7 @@ func main() {
 		Commands: []*cli.Command{
 			initcmd.GetInitCommand(),
 			add.AddCommand,
+			remove.RemoveCommand(),
 		},
 	}
 
