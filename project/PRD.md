@@ -77,7 +77,8 @@ Almandine (`almd` as the CLI command) is a lightweight package manager for Go pr
         -   **Output:** Prints confirmation messages for successful removal from manifest, file deletion (or warnings if deletion fails), and lockfile update. Reports errors clearly via `urfave/cli`.
     -   **Arguments & Flags (`urfave/cli`):**
         -   `<dependency_name>`: Argument accessed from `*cli.Context` for the logical name of the dependency to remove (required).
-
+-   **`update`**
+-   **`list`**
 ## 3. Almandine Tool Project Structure (Go Implementation)
 
 Standard Go project layout combined with Almandine specifics:

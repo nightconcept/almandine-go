@@ -211,6 +211,96 @@
         -   [x] Difficult to precisely mock file system write errors without more DI.
         -   [x] Focus on: If download happens, but a subsequent step like TOML marshaling or lockfile writing fails, does the downloaded file get removed? (This might require a test where the mock HTTP server succeeds, but we introduce an error in a subsequent, controllable step if possible, or inspect code paths for this cleanup logic). Initially, can be a lower priority if hard to test cleanly.
 
+## Milestone 4: `remove` Command Implementation
+
+**Goal:** Implement the `almd remove <dependency_name>` command to remove a dependency from the project.
+
+-   [ ] **Task 4.1: `urfave/cli` Command Setup**
+    -   [ ] Define the `remove` command structure (`cli.Command`) in `commands/remove.go` (or `internal/cli/remove/remove.go` as per PRD folder structure).
+    -   [ ] Add the command to the `urfave/cli` App in `main.go`.
+    -   [ ] Define the required `<dependency_name>` argument.
+    -   [ ] Manual Verification: Run `almd remove --help` and confirm the command and argument are listed correctly. Run `almd remove some-dep` and verify the argument value is accessible within the (currently empty) action.
+
+-   [ ] **Task 4.2: Implement Manifest Loading and Dependency Path Retrieval**
+    -   [ ] Add logic within the `remove` command's `Action` to load `project.toml` (using `internal/config`).
+    -   [ ] Verify if the specified `<dependency_name>` exists in the `[dependencies]` table.
+    -   [ ] If it exists, retrieve the relative `path` of the dependency.
+    -   [ ] Handle errors if `project.toml` is not found or the dependency does not exist.
+    -   [ ] Manual Verification: Test with an existing `project.toml`. Try removing an existing and a non-existing dependency. Check error messages.
+
+-   [ ] **Task 4.3: Implement Manifest Update and File Deletion**
+    -   [ ] Remove the entry for `<dependency_name>` from the `[dependencies]` table in the loaded manifest data.
+    -   [ ] Save the updated manifest back to `project.toml`.
+    -   [ ] Delete the file specified by the retrieved `path` using `os.Remove`.
+    -   [ ] Handle potential errors during file saving and deletion (e.g., permissions, file not found for deletion).
+    -   [ ] Manual Verification: Add a dependency using `almd add`. Then use `almd remove <dep_name>`. Verify `project.toml` is updated and the file is deleted. Test error conditions like read-only `project.toml` or non-existent dependency file.
+
+-   [ ] **Task 4.4: Implement Lockfile Update**
+    -   [ ] Load `almd-lock.toml` (using `internal/lockfile`).
+    -   [ ] Remove the entry for `<dependency_name>` from the `[package]` table in the loaded lockfile data.
+    -   [ ] Save the updated lockfile back to `almd-lock.toml`.
+    -   [ ] Handle errors if `almd-lock.toml` is not found or during saving. Handle cases where the dependency might not be in the lockfile even if it was in the manifest.
+    -   [ ] Manual Verification: After successfully running `almd add`, run `almd remove <dep_name>`. Verify `almd-lock.toml` is updated. Test with missing or read-only `almd-lock.toml`.
+
+-   [ ] **Task 4.5: Error Handling and Output**
+    -   [ ] Ensure robust error handling for all operations using `urfave/cli`'s error reporting (e.g., `cli.Exit`).
+    -   [ ] Provide clear confirmation messages for successful removal (manifest, file, lockfile).
+    -   [ ] Provide clear error messages for different failure scenarios.
+    -   [ ] Manual Verification: Test various error paths (missing files, non-existent dependency, permission issues) and check for clear, user-friendly output.
+
+## Milestone 5: `remove` Command Testing
+
+**Goal:** Implement unit tests for the `remove` command.
+
+-   [ ] **Task 5.1: Create Test File Structure for `remove`**
+    -   [ ] Create test file: `commands/remove_test.go` (or `internal/cli/remove/remove_test.go`).
+    -   [ ] Implement shared test helpers if applicable (e.g., for creating temp env with `project.toml`, `almd-lock.toml`, and dummy dependency files).
+
+-   [ ] **Task 5.2: Implement `remove` Command Unit Test Cases**
+    -   [ ] **Sub-Task 5.2.1: Setup for `remove` tests**
+        -   [ ] Define `TestMain` if any global setup/teardown for `remove` tests is needed.
+        -   [ ] Create helper: `setupRemoveTestEnvironment(t *testing.T, initialProjectTomlContent string, initialLockfileContent string, depFiles map[string]string) (tempDir string)` that creates a temp dir, `project.toml`, `almd-lock.toml`, and specified dependency files.
+        -   [ ] Create helper: `runRemoveCommand(t *testing.T, tempDir string, cliArgs ...string) error` to set up and run the `remove` command's action.
+    -   [ ] **Sub-Task 5.2.2: Test `almd remove` - Successful Removal**
+        -   [ ] Setup: Temp dir with `project.toml`, `almd-lock.toml`, and a dummy dependency file, all correctly linked.
+        -   [ ] Execute: `almd remove <dependency_name>`.
+        -   [ ] Verify:
+            -   Dependency entry removed from `project.toml`.
+            -   Dependency entry removed from `almd-lock.toml`.
+            -   Dependency file deleted from the filesystem.
+            -   Command returns no error.
+    -   [ ] **Sub-Task 5.2.3: Test `almd remove` - Error: Dependency Not Found in Manifest**
+        -   [ ] Setup: Temp dir with `project.toml` that does not contain the target dependency.
+        -   [ ] Execute: `almd remove <non_existent_dependency_name>`.
+        -   [ ] Verify:
+            -   Command returns an appropriate error.
+            -   `project.toml` and `almd-lock.toml` remain unchanged.
+            -   No file deletion attempted for the non-existent dependency.
+    -   [ ] **Sub-Task 5.2.4: Test `almd remove` - Error: Dependency File Not Found for Deletion**
+        -   [ ] Setup: Temp dir with `project.toml` and `almd-lock.toml` listing a dependency, but the actual dependency file is missing.
+        -   [ ] Execute: `almd remove <dependency_name>`.
+        -   [ ] Verify:
+            -   Dependency entry removed from `project.toml`.
+            -   Dependency entry removed from `almd-lock.toml`.
+            -   Command may return a warning or error about file deletion failure, but manifest/lockfile changes should persist.
+            -   PRD: "Handles potential errors gracefully (e.g., file not found, permissions)."
+    -   [ ] **Sub-Task 5.2.5: Test `almd remove` - Error: `project.toml` Not Found**
+        -   [ ] Setup: Run `remove` in a temp dir without `project.toml`.
+        -   [ ] Execute: `almd remove <dependency_name>`.
+        -   [ ] Verify: Command returns an appropriate error.
+    -   [ ] **Sub-Task 5.2.6: Test `almd remove` - Dependency in Manifest but not Lockfile**
+        -   [ ] Setup: Temp dir with `project.toml` listing a dependency, `almd-lock.toml` exists but doesn't list it, and the dependency file exists.
+        -   [ ] Execute: `almd remove <dependency_name>`.
+        -   [ ] Verify:
+            -   Dependency entry removed from `project.toml`.
+            -   `almd-lock.toml` is processed (attempt to remove, no error if not found).
+            -   Dependency file deleted.
+            -   Command completes successfully or with a notice about the lockfile state.
+    -   [ ] **Sub-Task 5.2.7: Test `almd remove` - Empty `project.toml` or `almd-lock.toml`**
+        -   [ ] Setup: Temp dir with empty `project.toml` and/or `almd-lock.toml`.
+        -   [ ] Execute: `almd remove <dependency_name>`.
+        -   [ ] Verify: Command returns an error indicating dependency not found, and files remain empty or unchanged.
+
 ---
 
-*This `TASKS.md` outlines the implementation of the core `init` and `add` commands and the initial setup for E2E testing. Further tasks can be added for other commands (`remove`, `install`, `run`), additional features, refactoring, and more comprehensive testing.*
+*This `TASKS.md`
