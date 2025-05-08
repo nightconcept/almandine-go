@@ -939,3 +939,25 @@ api_version = "1"
 	require.NoError(t, errUnmarshalProj, "Failed to unmarshal original project.toml content for comparison")
 	assert.Equal(t, originalProjCfg, currentProjCfg, "project.toml should be unchanged")
 }
+
+// Task 7.2.10: Test `almd install` - `project.toml` not found
+func TestInstallCommand_ProjectTomlNotFound(t *testing.T) {
+	// Setup: Create a temp directory but do NOT create project.toml
+	tempDir := setupInstallTestEnvironment(t, "", "", nil) // Empty string for projectTomlContent
+
+	// --- Run Command ---
+	// Expect an error because project.toml is missing
+	err := runInstallCommand(t, tempDir)
+
+	// --- Assertions ---
+	// 1. Verify command returns an error
+	require.Error(t, err, "almd install should return an error when project.toml is not found")
+
+	// 2. Verify the error message indicates project.toml was not found
+	//    The exact message depends on how internal/core/config.LoadProjectToml and the install command handle this.
+	//    Common error messages include "no such file or directory" or a custom "project.toml not found".
+	//    Let's check for a substring that is likely to be present.
+	//    Based on typical os.ReadFile errors or custom errors from config loading.
+	assert.Contains(t, err.Error(), config.ProjectTomlName, "Error message should mention project.toml")
+	assert.Contains(t, err.Error(), "not found in the current directory", "Error message should indicate file not found in current directory")
+}

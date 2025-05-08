@@ -422,10 +422,10 @@
         -   [x] Setup: `project.toml` points to `depA@nonexistent_branch`. Mock `internal/source` to simulate resolution failure.
         -   [x] Execute: `almd install depA`.
         -   [x] Verify: Command reports error for `depA`. No download attempt.
-    -   [ ] **Sub-Task 7.2.10: Test `almd install` - `project.toml` not found**
-        -   [ ] Setup: Run `install` in a temp dir without `project.toml`.
-        -   [ ] Execute: `almd install`.
-        -   [ ] Verify: Command returns an appropriate error.
+    -   [x] **Sub-Task 7.2.10: Test `almd install` - `project.toml` not found (2025-05-08)**
+        -   [x] Setup: Run `install` in a temp dir without `project.toml`.
+        -   [x] Execute: `almd install`.
+        -   [x] Verify: Command returns an appropriate error.
 
 ## Milestone 8: `list` Command Implementation
 
