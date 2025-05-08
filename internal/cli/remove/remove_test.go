@@ -275,10 +275,14 @@ func TestRemoveCommand_ProjectTomlNotFound(t *testing.T) {
 	require.True(t, ok, "Error should be a cli.ExitCoder")
 
 	assert.Equal(t, 1, exitErr.ExitCode(), "Expected exit code 1")
-	// The initial os.Stat check in remove.go returns "dependency not found"
-	// when project.toml is missing.
-	expectedErrorMsg := "dependency not found"
-	assert.Equal(t, expectedErrorMsg, exitErr.Error(), "Error message mismatch")
+	// Error message should now come from config.LoadProjectToml when project.toml is not found.
+	// It will include the full path to project.toml.
+	// We need to construct the expected full path for comparison.
+	// expectedPath := filepath.Join(tempDir, config.ProjectTomlName) // No longer needed directly for constructing one single string
+	// The actual error from os.ReadFile includes "open <path>: The system cannot find the file specified."
+	// or similar OS-dependent message. We check if the error message *starts* with our expected prefix.
+	assert.Contains(t, exitErr.Error(), "Error: Failed to load project.toml:", "Error message prefix mismatch")
+	assert.Contains(t, exitErr.Error(), "cannot find the file specified", "Error message should indicate file not found")
 }
 
 func TestRemoveCommand_ManifestOnlyDependency(t *testing.T) {
@@ -380,9 +384,8 @@ func TestRemoveCommand_EmptyProjectToml(t *testing.T) {
 	exitErr, ok := err.(cli.ExitCoder)
 	require.True(t, ok, "Error should be a cli.ExitCoder")
 	assert.Equal(t, 1, exitErr.ExitCode(), "Expected exit code 1")
-	// The error message comes from internal/cli/remove/remove.go, specifically from trying to load and find the dep.
-	// If project.toml is empty, config.LoadProject will succeed but proj.Dependencies will be nil or empty.
-	// The remove command should then indicate that no dependencies exist to be removed.
+	// With the changes in remove.go, if project.toml is empty (or has no [dependencies] table),
+	// it should return "Error: No dependencies found in project.toml."
 	assert.Equal(t, "Error: No dependencies found in project.toml.", exitErr.Error())
 
 	// Verify: files remain empty or unchanged.

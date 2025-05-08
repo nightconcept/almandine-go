@@ -204,13 +204,18 @@ var AddCommand = &cli.Command{
 		if verbose {
 			fmt.Println("Updating project.toml...")
 		}
-		projectTomlPath := filepath.Join(projectRoot, config.ProjectTomlName)
+		// projectTomlPath variable is no longer needed as LoadProjectToml and WriteProjectToml
+		// now correctly use projectRoot to construct the path internally.
 		var proj *project.Project // MODIFIED: Use pointer type
 		var loadTomlErr error
-		proj, loadTomlErr = config.LoadProjectToml(projectTomlPath)
+		// Pass projectRoot to LoadProjectToml, not the full path to the file
+		proj, loadTomlErr = config.LoadProjectToml(projectRoot)
 		if loadTomlErr != nil {
 			if os.IsNotExist(loadTomlErr) {
-				detailedError := fmt.Errorf("project.toml not found (no such file or directory): %w", loadTomlErr)
+				// Construct the expected full path for a more accurate error message if needed,
+				// though LoadProjectToml itself will return the error from os.ReadFile(filepath.Join(projectRoot, config.ProjectTomlName))
+				expectedProjectTomlPath := filepath.Join(projectRoot, config.ProjectTomlName)
+				detailedError := fmt.Errorf("project.toml not found at '%s' (no such file or directory): %w", expectedProjectTomlPath, loadTomlErr)
 				err = cli.Exit(fmt.Sprintf("Error: %s. File '%s' was saved but is now being cleaned up.", detailedError, fullPath), 1)
 				return
 			} else {
@@ -231,7 +236,8 @@ var AddCommand = &cli.Command{
 		}
 
 		// Use a temporary variable for WriteProjectToml's error
-		if writeTomlErr := config.WriteProjectToml(projectTomlPath, proj); writeTomlErr != nil { // proj is already a pointer
+		// Pass projectRoot to WriteProjectToml, not the full path to the file
+		if writeTomlErr := config.WriteProjectToml(projectRoot, proj); writeTomlErr != nil { // proj is already a pointer
 			err = cli.Exit(fmt.Sprintf("Error writing %s: %v. File '%s' was saved but is now being cleaned up. %s may be in an inconsistent state.", config.ProjectTomlName, writeTomlErr, fullPath, config.ProjectTomlName), 1)
 			return
 		}

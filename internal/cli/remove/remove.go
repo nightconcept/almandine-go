@@ -34,29 +34,23 @@ func RemoveCommand() *cli.Command {
 
 			depName := c.Args().First()
 
-			// Check if project.toml exists first
-			if _, err := os.Stat("project.toml"); os.IsNotExist(err) {
-				return cli.Exit("dependency not found", 1)
-			}
-
-			projectFilePath := config.ProjectTomlName
-			proj, err := config.LoadProjectToml(projectFilePath)
+			// Load project.toml from the current directory
+			proj, err := config.LoadProjectToml(".")
 			if err != nil {
-				if os.IsNotExist(err) {
-					return cli.Exit(fmt.Sprintf("Error: %s not found in the current directory.", projectFilePath), 1)
-				}
-				return cli.Exit(fmt.Sprintf("Error: Failed to load %s: %v", projectFilePath, err), 1)
+				// config.LoadProjectToml will return an error if project.toml is not found or unreadable
+				// os.IsNotExist check might be too specific if LoadProjectToml wraps errors.
+				// A more general check for err != nil is better here.
+				// The error from LoadProjectToml should be descriptive enough.
+				return cli.Exit(fmt.Sprintf("Error: Failed to load %s: %v", config.ProjectTomlName, err), 1)
 			}
 
-			if proj.Dependencies == nil {
-				// This case should ideally not happen if project.toml is valid and loaded,
-				// but good for robustness.
-				return cli.Exit(fmt.Sprintf("Error: No dependencies found in %s.", projectFilePath), 1)
+			if len(proj.Dependencies) == 0 {
+				return cli.Exit(fmt.Sprintf("Error: No dependencies found in %s.", config.ProjectTomlName), 1)
 			}
 
 			dep, ok := proj.Dependencies[depName]
 			if !ok {
-				return cli.Exit(fmt.Sprintf("Error: Dependency '%s' not found in %s.", depName, projectFilePath), 1)
+				return cli.Exit(fmt.Sprintf("Error: Dependency '%s' not found in %s.", depName, config.ProjectTomlName), 1)
 			}
 
 			dependencyPath := dep.Path
@@ -64,10 +58,10 @@ func RemoveCommand() *cli.Command {
 			delete(proj.Dependencies, depName)
 
 			// Save the updated manifest
-			if err := config.WriteProjectToml(projectFilePath, proj); err != nil {
-				return cli.Exit(fmt.Sprintf("Error: Failed to update %s: %v", projectFilePath, err), 1)
+			if err := config.WriteProjectToml(".", proj); err != nil {
+				return cli.Exit(fmt.Sprintf("Error: Failed to update %s: %v", config.ProjectTomlName, err), 1)
 			}
-			fmt.Printf("Successfully removed dependency '%s' from %s.\n", depName, projectFilePath)
+			fmt.Printf("Successfully removed dependency '%s' from %s.\n", depName, config.ProjectTomlName)
 
 			// Delete the dependency file
 			if err := os.Remove(dependencyPath); err != nil {
