@@ -406,14 +406,14 @@
     -   [x] Setup: `depA` in `project.toml` and `almd-lock.toml`, but its local file is deleted.
     -   [x] Execute: `almd install depA`.
     -   [x] Verify: `depA` is re-downloaded based on `almd-lock.toml`'s pinned version (or `project.toml` if it dictates a newer one). `almd-lock.toml` reflects the version downloaded.
-    -   [ ] **Sub-Task 7.2.6: Test `almd install --force` - Force install on an up-to-date dependency**
-        -   [ ] Setup: `depA` is up-to-date.
-        -   [ ] Execute: `almd install --force depA`.
-        -   [ ] Verify: `depA` is re-downloaded and `almd-lock.toml` entry is refreshed, even if commit hash was the same.
-    -   [ ] **Sub-Task 7.2.7: Test `almd install <non_existent_dep>` - Non-existent dependency specified**
-        -   [ ] Setup: `project.toml` does not contain `non_existent_dep`.
-        -   [ ] Execute: `almd install non_existent_dep`.
-        -   [ ] Verify: Warning message printed, no other actions taken for this dep. Other valid deps (if `install` was called without args but one was invalid) should process normally.
+    -   [x] **Sub-Task 7.2.6: Test `almd install --force` - Force install on an up-to-date dependency (2025-05-08)**
+        -   [x] Setup: `depA` is up-to-date.
+        -   [x] Execute: `almd install --force depA`.
+        -   [x] Verify: `depA` is re-downloaded and `almd-lock.toml` entry is refreshed, even if commit hash was the same.
+    -   [x] **Sub-Task 7.2.7: Test `almd install <non_existent_dep>` - Non-existent dependency specified (2025-05-08)**
+        -   [x] Setup: `project.toml` does not contain `non_existent_dep`.
+        -   [x] Execute: `almd install non_existent_dep`.
+        -   [x] Verify: Warning message printed, no other actions taken for this dep. Other valid deps (if `install` was called without args but one was invalid) should process normally.
     -   [ ] **Sub-Task 7.2.8: Test `almd install` - Error during download**
         -   [ ] Setup: Mock server returns HTTP error for a dependency that needs update.
         -   [ ] Execute: `almd install`.

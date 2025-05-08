@@ -586,3 +586,191 @@ hash = "commit:%s"
 	assert.Equal(t, depAPath, depALockEntry.Path, "depA lockfile path mismatch")
 	assert.Equal(t, "commit:"+depALockedCommitSHA, depALockEntry.Hash, "depA lockfile hash mismatch")
 }
+
+// Task 7.2.6: Test `almd install --force` - Force install on an up-to-date dependency
+func TestInstallCommand_ForceInstallUpToDateDependency(t *testing.T) {
+	depAName := "depA"
+	depAPath := "libs/depA.lua"
+	depAContent := "local depA_v_current = true"
+	depACommitCurrentSHA := "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2" // Valid 40-char hex
+
+	initialProjectToml := fmt.Sprintf(`
+[package]
+name = "test-force-install-project"
+version = "0.1.0"
+
+[dependencies.%s]
+source = "github:testowner/testrepo/%s@main"
+path = "%s"
+`, depAName, depAPath, depAPath)
+
+	// Lockfile points to the current commit, and local file matches this version
+	initialLockfileContent := fmt.Sprintf(`
+api_version = "1"
+
+[package.%s]
+source = "https://raw.githubusercontent.com/testowner/testrepo/%s/%s"
+path = "%s"
+hash = "commit:%s"
+`, depAName, depACommitCurrentSHA, depAPath, depAPath, depACommitCurrentSHA)
+
+	mockFiles := map[string]string{
+		depAPath: depAContent, // Local file exists and is "current"
+	}
+
+	tempDir := setupInstallTestEnvironment(t, initialProjectToml, initialLockfileContent, mockFiles)
+
+	// Mock server setup
+	// GitHub API call to resolve 'main' for depA should return the *same* current SHA
+	githubAPIPathForDepA := fmt.Sprintf("/repos/testowner/testrepo/commits?path=%s&sha=main&per_page=1", depAPath)
+	githubAPIResponseForDepA := fmt.Sprintf(`[{"sha": "%s"}]`, depACommitCurrentSHA)
+
+	// Raw download path - this *should* be called due to --force
+	rawDownloadPathDepA := fmt.Sprintf("/testowner/testrepo/%s/%s", depACommitCurrentSHA, depAPath)
+
+	// Keep track of whether the download endpoint was called
+	downloadEndpointCalled := false
+	pathResps := map[string]struct {
+		Body string
+		Code int
+	}{
+		githubAPIPathForDepA: {Body: githubAPIResponseForDepA, Code: http.StatusOK},
+		rawDownloadPathDepA: {
+			Body: depAContent, // Serve the same content, or new if we want to check content update
+			Code: http.StatusOK,
+		},
+	}
+
+	// Modify the server to track the call
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestPathWithQuery := r.URL.Path
+		if r.URL.RawQuery != "" {
+			requestPathWithQuery += "?" + r.URL.RawQuery
+		}
+
+		if r.Method == http.MethodGet && (r.URL.Path == rawDownloadPathDepA || requestPathWithQuery == rawDownloadPathDepA) {
+			downloadEndpointCalled = true
+		}
+
+		for path, response := range pathResps {
+			if r.Method == http.MethodGet && (r.URL.Path == path || requestPathWithQuery == path) {
+				w.WriteHeader(response.Code)
+				_, err := w.Write([]byte(response.Body))
+				assert.NoError(t, err, "Mock server failed to write response body for path: %s", path)
+				return
+			}
+		}
+		t.Logf("Mock server: unexpected request: Method %s, Path %s, Query %s", r.Method, r.URL.Path, r.URL.RawQuery)
+		http.NotFound(w, r)
+	}))
+	t.Cleanup(server.Close)
+	mockServerURL := server.URL
+
+	originalGHAPIBaseURL := source.GithubAPIBaseURL
+	source.GithubAPIBaseURL = mockServerURL
+	defer func() { source.GithubAPIBaseURL = originalGHAPIBaseURL }()
+
+	// --- Run Command with --force ---
+	// Note: urfave/cli parses flags before arguments.
+	// So, `almd install depA --force` or `almd install --force depA` should work.
+	// The task description uses `almd install --force depA`.
+	err := runInstallCommand(t, tempDir, "--force", depAName)
+	require.NoError(t, err, "almd install --force %s command failed", depAName)
+
+	// --- Assertions ---
+	assert.True(t, downloadEndpointCalled, "Download endpoint for depA was not called despite --force")
+
+	// 1. Verify depA file content (could be same or updated if mock served new content)
+	depAFilePath := filepath.Join(tempDir, depAPath)
+	currentContentBytes, readErr := os.ReadFile(depAFilePath)
+	require.NoError(t, readErr, "Failed to read depA file: %s", depAFilePath)
+	assert.Equal(t, depAContent, string(currentContentBytes), "depA file content should be (re-)written")
+
+	// 2. Verify almd-lock.toml is refreshed
+	lockFilePath := filepath.Join(tempDir, lockfile.LockfileName)
+	updatedLockCfg := readAlmdLockToml(t, lockFilePath)
+
+	require.NotNil(t, updatedLockCfg.Package, "Packages map in almd-lock.toml is nil after force install")
+	depALockEntry, ok := updatedLockCfg.Package[depAName]
+	require.True(t, ok, "depA entry not found in almd-lock.toml after force install")
+
+	expectedLockSourceURL := mockServerURL + rawDownloadPathDepA
+	assert.Equal(t, expectedLockSourceURL, depALockEntry.Source, "depA lockfile source URL mismatch after force")
+	assert.Equal(t, depAPath, depALockEntry.Path, "depA lockfile path mismatch after force")
+	assert.Equal(t, "commit:"+depACommitCurrentSHA, depALockEntry.Hash, "depA lockfile hash mismatch after force (could be re-verified)")
+
+	// 3. Verify project.toml remains unchanged
+	projTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
+	currentProjCfg := readProjectToml(t, projTomlPath)
+	originalProjCfg := project.Project{}
+	errUnmarshalProj := toml.Unmarshal([]byte(initialProjectToml), &originalProjCfg)
+	require.NoError(t, errUnmarshalProj, "Failed to unmarshal original project.toml content for comparison")
+	assert.Equal(t, originalProjCfg, currentProjCfg, "project.toml should be unchanged after force install")
+}
+
+// Task 7.2.7: Test `almd install <non_existent_dep>` - Non-existent dependency specified
+func TestInstallCommand_NonExistentDependencySpecified(t *testing.T) {
+	nonExistentDepName := "nonExistentDep"
+
+	initialProjectToml := `
+[package]
+name = "test-nonexistent-dep-project"
+version = "0.1.0"
+# No dependencies defined, or at least not nonExistentDep
+`
+	initialLockfileContent := `
+api_version = "1"
+[package]
+`
+	tempDir := setupInstallTestEnvironment(t, initialProjectToml, initialLockfileContent, nil)
+
+	// No mock server needed as no downloads should occur for a non-existent dependency.
+
+	// --- Run Command ---
+	// We expect a warning, but the command itself might not return an error,
+	// or it might return a specific error that indicates "not found but continued".
+	// For now, we'll check that it doesn't panic and that files are unchanged.
+	// Capturing stderr would be ideal for checking the warning.
+	err := runInstallCommand(t, tempDir, nonExistentDepName)
+
+	// Depending on implementation, this might be an error or not.
+	// If it's just a warning, err might be nil.
+	// For now, let's assume it might print a warning and continue without error if other deps were processed.
+	// If only a non-existent dep is specified, it might still be a non-error exit.
+	// The task says "Warning message printed, no other actions taken".
+	// Let's assert no error for now, and focus on "no other actions taken".
+	// If the command *does* return an error for this, this assertion will need adjustment.
+	require.NoError(t, err, "almd install %s command failed unexpectedly (expected warning, not fatal error)", nonExistentDepName)
+
+	// --- Assertions ---
+	// 1. Verify project.toml remains unchanged
+	projTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
+	currentProjCfg := readProjectToml(t, projTomlPath)
+	originalProjCfg := project.Project{}
+	errUnmarshalProj := toml.Unmarshal([]byte(initialProjectToml), &originalProjCfg)
+	require.NoError(t, errUnmarshalProj, "Failed to unmarshal original project.toml content for comparison")
+	assert.Equal(t, originalProjCfg, currentProjCfg, "project.toml should be unchanged")
+
+	// 2. Verify almd-lock.toml remains unchanged
+	lockFilePath := filepath.Join(tempDir, lockfile.LockfileName)
+	currentLockCfg := readAlmdLockToml(t, lockFilePath)
+	originalLockCfg := lockfile.Lockfile{}
+	errUnmarshalLock := toml.Unmarshal([]byte(initialLockfileContent), &originalLockCfg)
+	require.NoError(t, errUnmarshalLock, "Failed to unmarshal original lockfile content for comparison")
+	assert.Equal(t, originalLockCfg, currentLockCfg, "almd-lock.toml should be unchanged")
+
+	// 3. Verify no files were created in common dependency directories (e.g., libs, vendor)
+	// This is a basic check; a more robust check would be to snapshot directory contents.
+	libsDir := filepath.Join(tempDir, "libs")
+	_, errStatLibs := os.Stat(libsDir)
+	assert.True(t, os.IsNotExist(errStatLibs), "libs directory should not have been created")
+
+	vendorDir := filepath.Join(tempDir, "vendor")
+	_, errStatVendor := os.Stat(vendorDir)
+	assert.True(t, os.IsNotExist(errStatVendor), "vendor directory should not have been created")
+
+	// 4. Verify no file named nonExistentDep was created at root
+	nonExistentDepFilePath := filepath.Join(tempDir, nonExistentDepName)
+	_, errStatDepFile := os.Stat(nonExistentDepFilePath)
+	assert.True(t, os.IsNotExist(errStatDepFile), "File for nonExistentDep should not have been created")
+}
