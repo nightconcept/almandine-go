@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/nightconcept/almandine-go/internal/core/config"
+	"github.com/nightconcept/almandine-go/internal/core/lockfile"
 	"github.com/urfave/cli/v2"
 )
 
@@ -41,9 +42,51 @@ func RemoveCommand() *cli.Command {
 			}
 
 			dependencyPath := dep.Path
-			fmt.Printf("Found dependency '%s' at path: %s\n", dependencyName, dependencyPath)
-			fmt.Printf("Manifest loaded. Dependency path for '%s' is '%s'. Next steps: update manifest, delete file, update lockfile.\n", dependencyName, dependencyPath)
-			// Further implementation for manifest update, file deletion, and lockfile update will go here.
+			// Remove the dependency from the manifest
+			delete(proj.Dependencies, dependencyName)
+
+			// Save the updated manifest
+			if err := config.WriteProjectToml(projectFilePath, proj); err != nil {
+				return cli.Exit(fmt.Sprintf("Error: Failed to update %s: %v", projectFilePath, err), 1)
+			}
+			fmt.Printf("Successfully removed dependency '%s' from %s.\n", dependencyName, projectFilePath)
+
+			// Delete the dependency file
+			if err := os.Remove(dependencyPath); err != nil {
+				// If the file is already gone, it's not a critical error for the remove operation's main goal (manifest update).
+				// However, other errors (like permission issues) should be reported.
+				if !os.IsNotExist(err) {
+					return cli.Exit(fmt.Sprintf("Error: Failed to delete dependency file '%s': %v. Manifest updated.", dependencyPath, err), 1)
+				}
+				fmt.Printf("Warning: Dependency file '%s' not found for deletion, but manifest updated.\n", dependencyPath)
+			} else {
+				fmt.Printf("Successfully deleted dependency file '%s'.\n", dependencyPath)
+			}
+
+			// Update lockfile
+			lf, err := lockfile.Load(".") // Load from current directory
+			if err != nil {
+				// If lockfile loading fails, it's not a critical error that should stop the command,
+				// as manifest and file are already handled. Report as warning.
+				fmt.Printf("Warning: Failed to load %s: %v. Manifest and file processed.\n", lockfile.LockfileName, err)
+			} else {
+				if lf.Package != nil {
+					if _, ok := lf.Package[dependencyName]; ok {
+						delete(lf.Package, dependencyName)
+						if err := lockfile.Save(".", lf); err != nil {
+							fmt.Printf("Warning: Failed to update %s: %v. Manifest and file processed.\n", lockfile.LockfileName, err)
+						} else {
+							fmt.Printf("Successfully removed dependency '%s' from %s.\n", dependencyName, lockfile.LockfileName)
+						}
+					} else {
+						fmt.Printf("Info: Dependency '%s' not found in %s. No changes made to lockfile.\n", dependencyName, lockfile.LockfileName)
+					}
+				} else {
+					fmt.Printf("Info: No 'package' section found in %s. No changes made to lockfile.\n", lockfile.LockfileName)
+				}
+			}
+
+			fmt.Printf("Successfully removed dependency '%s'.\n", dependencyName)
 			return nil
 		},
 	}

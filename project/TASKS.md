@@ -228,25 +228,25 @@
     -   [x] Handle errors if `project.toml` is not found or the dependency does not exist.
     -   [x] Manual Verification: Test with an existing `project.toml`. Try removing an existing and a non-existing dependency. Check error messages.
 
--   [ ] **Task 4.3: Implement Manifest Update and File Deletion**
-    -   [ ] Remove the entry for `<dependency_name>` from the `[dependencies]` table in the loaded manifest data.
-    -   [ ] Save the updated manifest back to `project.toml`.
-    -   [ ] Delete the file specified by the retrieved `path` using `os.Remove`.
-    -   [ ] Handle potential errors during file saving and deletion (e.g., permissions, file not found for deletion).
-    -   [ ] Manual Verification: Add a dependency using `almd add`. Then use `almd remove <dep_name>`. Verify `project.toml` is updated and the file is deleted. Test error conditions like read-only `project.toml` or non-existent dependency file.
+-   [x] **Task 4.3: Implement Manifest Update and File Deletion**
+    -   [x] Remove the entry for `<dependency_name>` from the `[dependencies]` table in the loaded manifest data.
+    -   [x] Save the updated manifest back to `project.toml`.
+    -   [x] Delete the file specified by the retrieved `path` using `os.Remove`.
+    -   [x] Handle potential errors during file saving and deletion (e.g., permissions, file not found for deletion).
+    -   [x] Manual Verification: Add a dependency using `almd add`. Then use `almd remove <dep_name>`. Verify `project.toml` is updated and the file is deleted. Test error conditions like read-only `project.toml` or non-existent dependency file.
 
--   [ ] **Task 4.4: Implement Lockfile Update**
-    -   [ ] Load `almd-lock.toml` (using `internal/lockfile`).
-    -   [ ] Remove the entry for `<dependency_name>` from the `[package]` table in the loaded lockfile data.
-    -   [ ] Save the updated lockfile back to `almd-lock.toml`.
-    -   [ ] Handle errors if `almd-lock.toml` is not found or during saving. Handle cases where the dependency might not be in the lockfile even if it was in the manifest.
-    -   [ ] Manual Verification: After successfully running `almd add`, run `almd remove <dep_name>`. Verify `almd-lock.toml` is updated. Test with missing or read-only `almd-lock.toml`.
+-   [x] **Task 4.4: Implement Lockfile Update**
+    -   [x] Load `almd-lock.toml` (using `internal/lockfile`).
+    -   [x] Remove the entry for `<dependency_name>` from the `[package]` table in the loaded lockfile data.
+    -   [x] Save the updated lockfile back to `almd-lock.toml`.
+    -   [x] Handle errors if `almd-lock.toml` is not found or during saving. Handle cases where the dependency might not be in the lockfile even if it was in the manifest.
+    -   [x] Manual Verification: After successfully running `almd add`, run `almd remove <dep_name>`. Verify `almd-lock.toml` is updated. Test with missing or read-only `almd-lock.toml`.
 
--   [ ] **Task 4.5: Error Handling and Output**
-    -   [ ] Ensure robust error handling for all operations using `urfave/cli`'s error reporting (e.g., `cli.Exit`).
-    -   [ ] Provide clear confirmation messages for successful removal (manifest, file, lockfile).
-    -   [ ] Provide clear error messages for different failure scenarios.
-    -   [ ] Manual Verification: Test various error paths (missing files, non-existent dependency, permission issues) and check for clear, user-friendly output.
+-   [x] **Task 4.5: Error Handling and Output**
+    -   [x] Ensure robust error handling for all operations using `urfave/cli`'s error reporting (e.g., `cli.Exit`).
+    -   [x] Provide clear confirmation messages for successful removal (manifest, file, lockfile).
+    -   [x] Provide clear error messages for different failure scenarios.
+    -   [x] Manual Verification: Test various error paths (missing files, non-existent dependency, permission issues) and check for clear, user-friendly output.
 
 ## Milestone 5: `remove` Command Testing
 
