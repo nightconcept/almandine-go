@@ -31,6 +31,50 @@ type ParsedSourceInfo struct {
 // ParseSourceURL analyzes the input source URL string and returns structured information.
 // It currently prioritizes GitHub URLs.
 func ParseSourceURL(sourceURL string) (*ParsedSourceInfo, error) {
+	if strings.HasPrefix(sourceURL, "github:") {
+		// Handle github:owner/repo/path/to/file@ref format
+		content := strings.TrimPrefix(sourceURL, "github:")
+
+		lastAt := strings.LastIndex(content, "@")
+		if lastAt == -1 {
+			return nil, fmt.Errorf("invalid github shorthand source '%s': missing @ref (e.g., @main or @commitsha)", sourceURL)
+		}
+		if lastAt == len(content)-1 {
+			return nil, fmt.Errorf("invalid github shorthand source '%s': ref part is empty after @", sourceURL)
+		}
+
+		repoAndPathPart := content[:lastAt]
+		ref := content[lastAt+1:]
+
+		pathComponents := strings.Split(repoAndPathPart, "/")
+		if len(pathComponents) < 3 {
+			return nil, fmt.Errorf("invalid github shorthand source '%s': expected format owner/repo/path/to/file, got '%s'", sourceURL, repoAndPathPart)
+		}
+
+		owner := pathComponents[0]
+		repo := pathComponents[1]
+		pathInRepo := strings.Join(pathComponents[2:], "/")
+		suggestedFilename := pathComponents[len(pathComponents)-1]
+
+		if owner == "" || repo == "" || pathInRepo == "" || suggestedFilename == "" {
+			return nil, fmt.Errorf("invalid github shorthand source '%s': owner, repo, or path/filename cannot be empty", sourceURL)
+		}
+
+		rawURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, ref, pathInRepo)
+
+		return &ParsedSourceInfo{
+			RawURL:            rawURL,
+			CanonicalURL:      sourceURL, // The input is already the canonical form for this type
+			Ref:               ref,
+			Provider:          "github",
+			Owner:             owner,
+			Repo:              repo,
+			PathInRepo:        pathInRepo,
+			SuggestedFilename: suggestedFilename,
+		}, nil
+	}
+
+	// Existing logic for full URLs
 	u, err := url.Parse(sourceURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse source URL '%s': %w", sourceURL, err)

@@ -342,7 +342,9 @@
     -   [x] For each dependency:
         -   [x] Resolve its `source` from `project.toml` to a concrete downloadable raw URL and a definitive commit hash/version identifier (using `internal/source`). This involves fetching latest commit for branches/tags if necessary.
         -   [x] Retrieve its current locked state (raw `source` URL, `hash`) from `almd-lock.toml`, if an entry exists.
-    -   [x] Manual Verification: Test source resolution for branches, tags, and specific commits. Check retrieval from lockfile.
+        -   [x] **Sub-Task 6.4.1: Support `github:owner/repo/path/to/file@ref` shorthand in `internal/source` (2025-05-08)**
+            -   [x] Modified `internal/core/source/source.go`'s `ParseSourceURL` function to correctly parse the shorthand, extract components, and build the raw download URL.
+    -   [x] Manual Verification: Test source resolution for branches, tags, and specific commits. Check retrieval from lockfile. Test new shorthand format.
 
 -   [x] **Task 6.5: Comparison Logic and Update Decision**
     -   [x] For each dependency, determine if an install is required based on PRD logic:
