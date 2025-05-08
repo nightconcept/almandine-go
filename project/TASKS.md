@@ -207,9 +207,9 @@
     -   [x] **Sub-Task 3.4.6: Test `almd add` - Error: `project.toml` Not Found**
         -   [x] Run `add` in a temp dir without `project.toml`.
         -   [x] Verify command returns an appropriate error.
-    -   [ ] **Sub-Task 3.4.7: Test `almd add` - Cleanup on Failure (e.g., Lockfile Write Error)**
-        -   Difficult to precisely mock file system write errors without more DI.
-        -   Focus on: If download happens, but a subsequent step like TOML marshaling or lockfile writing fails, does the downloaded file get removed? (This might require a test where the mock HTTP server succeeds, but we introduce an error in a subsequent, controllable step if possible, or inspect code paths for this cleanup logic). Initially, can be a lower priority if hard to test cleanly.
+    -   [x] **Sub-Task 3.4.7: Test `almd add` - Cleanup on Failure (e.g., Lockfile Write Error)**
+        -   [x] Difficult to precisely mock file system write errors without more DI.
+        -   [x] Focus on: If download happens, but a subsequent step like TOML marshaling or lockfile writing fails, does the downloaded file get removed? (This might require a test where the mock HTTP server succeeds, but we introduce an error in a subsequent, controllable step if possible, or inspect code paths for this cleanup logic). Initially, can be a lower priority if hard to test cleanly.
 
 ---
 
