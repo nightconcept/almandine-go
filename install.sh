@@ -53,7 +53,7 @@ if [ "$LOCAL_MODE" -eq 1 ]; then
 
   # Ensure WRAPPER_DIR exists and copy the local binary 'almd' to it
   mkdir -p "$WRAPPER_DIR"
-  cp ./almd "$WRAPPER_DIR/almd" # Use the 'almd' binary from the project root
+  cp ./build/almd "$WRAPPER_DIR/almd" # Use the 'almd' binary from the project root
   chmod +x "$WRAPPER_DIR/almd"
 
   printf '\n[DEV] Local almd binary installation complete!\n'

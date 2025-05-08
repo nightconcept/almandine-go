@@ -314,21 +314,21 @@
         -   [x] Execute: `almd remove <dependency_name>`.
         -   [ ] Verify: Command returns an error indicating dependency not found, and files remain empty or unchanged.
 
-## Milestone 6: `update` Command Implementation
+## Milestone 6: `install` Command Implementation
 
-**Goal:** Implement the `almd update` command to refresh dependencies based on `project.toml` and update `almd-lock.toml`.
+**Goal:** Implement the `almd install` command to refresh dependencies based on `project.toml` and update `almd-lock.toml`.
 
--   [x] **Task 6.1: `urfave/cli` Command Setup for `update`**
-    -   [x] Define the `update` command structure (`cli.Command`) in `internal/cli/update/update.go`.
+-   [x] **Task 6.1: `urfave/cli` Command Setup for `install`**
+    -   [x] Define the `install` command structure (`cli.Command`) in `internal/cli/install/install.go`.
     -   [x] Add the command to the `urfave/cli` App in `main.go`.
     -   [x] Define optional `[dependency_names...]` argument.
     -   [x] Define flags: `--force, -f` (bool), `--verbose` (bool).
-    -   [x] Manual Verification: Run `almd update --help` and confirm the command, argument, and flags are listed correctly.
+    -   [x] Manual Verification: Run `almd install --help` and confirm the command, argument, and flags are listed correctly.
 
 -   [x] **Task 6.2: Argument Parsing and Initial Loading**
-    -   [x] In the `update` command's `Action`, parse optional dependency names. If none, target all.
+    -   [x] In the `install` command's `Action`, parse optional dependency names. If none, target all.
     -   [x] Load `project.toml` (using `internal/core/config`). Handle errors if not found.
-    -   [x] Load `almd-lock.toml` (using `internal/core/lockfile`). Handle if not found (treat as all dependencies needing update/addition to lockfile).
+    -   [x] Load `almd-lock.toml` (using `internal/core/lockfile`). Handle if not found (treat as all dependencies needing install/addition to lockfile).
     -   [x] Manual Verification: Test with and without dependency names. Check behavior with missing manifest/lockfile.
 
 -   [x] **Task 6.3: Dependency Iteration and Configuration Retrieval**
@@ -345,7 +345,7 @@
     -   [x] Manual Verification: Test source resolution for branches, tags, and specific commits. Check retrieval from lockfile.
 
 -   [x] **Task 6.5: Comparison Logic and Update Decision**
-    -   [x] For each dependency, determine if an update is required based on PRD logic:
+    -   [x] For each dependency, determine if an install is required based on PRD logic:
         -   [x] Resolved target commit hash (from `project.toml` source) differs from locked commit hash.
         -   [x] Dependency in `project.toml` but missing from `almd-lock.toml`.
         -   [x] Local file at `path` is missing.
@@ -353,8 +353,8 @@
     -   [x] If none of the above, the dependency is considered up-to-date.
     -   [x] Manual Verification: Code review decision logic against PRD.
 
--   [x] **Task 6.6: Perform Update (If Required)**
-    -   [x] For each dependency needing an update:
+-   [x] **Task 6.6: Perform Install (If Required)**
+    -   [x] For each dependency needing an install:
         -   [x] Download the file from the resolved target raw URL (using `internal/downloader`).
         -   [x] Calculate integrity hash (commit hash preferred, else SHA256 via `internal/hasher`).
         -   [x] Save the downloaded file to its `path` (from `project.toml`), creating parent directories if needed.
@@ -366,61 +366,61 @@
     -   [x] Report errors clearly (e.g., download failure, source resolution failure, file write failure) via `urfave/cli`.
     -   [x] Manual Verification: Observe output for various scenarios (updates, no updates, errors).
 
--   [x] **Task 6.8: Fix Lint Errors in `update.go` (2025-05-08)**
-    -   [x] Corrected `lf.Packages` to `lf.Package` in `internal/cli/update/update.go`.
-    -   [x] Corrected type `project.LockPackageDetail` to `lockfile.PackageEntry` for lockfile map values in `internal/cli/update/update.go`.
+-   [x] **Task 6.8: Fix Lint Errors in `install.go` (2025-05-08)**
+    -   [x] Corrected `lf.Packages` to `lf.Package` in `internal/cli/install/install.go`.
+    -   [x] Corrected type `project.LockPackageDetail` to `lockfile.PackageEntry` for lockfile map values in `internal/cli/install/install.go`.
 
-## Milestone 7: `update` Command Testing
+## Milestone 7: `install` Command Testing
 
-**Goal:** Implement unit tests for the `update` command.
+**Goal:** Implement unit tests for the `install` command.
 
--   [ ] **Task 7.1: Test File Structure and Helpers for `update`**
-    -   [ ] Create test file: `internal/cli/update/update_test.go`.
+-   [ ] **Task 7.1: Test File Structure and Helpers for `install`**
+    -   [ ] Create test file: `internal/cli/install/install_test.go`.
     -   [ ] Develop test helpers:
-        -   `setupUpdateTestEnvironment(...)`: Creates temp dir, `project.toml`, `almd-lock.toml`, mock dependency files.
-        -   `runUpdateCommand(...)`: Executes the `update` command's action with specified args and context.
+        -   `setupInstallTestEnvironment(...)`: Creates temp dir, `project.toml`, `almd-lock.toml`, mock dependency files.
+        -   `runInstallCommand(...)`: Executes the `install` command's action with specified args and context.
         -   Mock HTTP server setup (similar to `add` command tests) for controlling download responses and simulating remote changes.
 
--   [ ] **Task 7.2: Implement `update` Command Unit Test Cases**
-    -   [ ] **Sub-Task 7.2.1: Test `almd update` - All dependencies, one needs update (commit hash change)**
+-   [ ] **Task 7.2: Implement `install` Command Unit Test Cases**
+    -   [ ] **Sub-Task 7.2.1: Test `almd install` - All dependencies, one needs install (commit hash change)**
         -   [ ] Setup: `project.toml` specifies `depA@main`. `almd-lock.toml` has `depA` at `commit1`. Mock server resolves `main` for `depA` to `commit2` and serves new content.
-        -   [ ] Execute: `almd update`.
+        -   [ ] Execute: `almd install`.
         -   [ ] Verify: `depA` file updated, `almd-lock.toml` updated for `depA` to `commit2`. Other up-to-date deps untouched.
-    -   [ ] **Sub-Task 7.2.2: Test `almd update <dep_name>` - Specific dependency update**
+    -   [ ] **Sub-Task 7.2.2: Test `almd install <dep_name>` - Specific dependency install**
         -   [ ] Setup: Similar to 7.2.1, but also `depB` needs update.
-        -   [ ] Execute: `almd update depA`.
+        -   [ ] Execute: `almd install depA`.
         -   [ ] Verify: Only `depA` is updated. `depB` remains as per old lockfile.
-    -   [ ] **Sub-Task 7.2.3: Test `almd update` - All dependencies up-to-date**
+    -   [ ] **Sub-Task 7.2.3: Test `almd install` - All dependencies up-to-date**
         -   [ ] Setup: `project.toml` sources resolve to same commits as in `almd-lock.toml`. Local files exist.
-        -   [ ] Execute: `almd update`.
+        -   [ ] Execute: `almd install`.
         -   [ ] Verify: No files downloaded, no changes to `almd-lock.toml`. Appropriate "up-to-date" messages.
-    -   [ ] **Sub-Task 7.2.4: Test `almd update` - Dependency in `project.toml` but missing from `almd-lock.toml`**
+    -   [ ] **Sub-Task 7.2.4: Test `almd install` - Dependency in `project.toml` but missing from `almd-lock.toml`**
         -   [ ] Setup: `depNew` in `project.toml`, but no entry in `almd-lock.toml`.
-        -   [ ] Execute: `almd update`.
+        -   [ ] Execute: `almd install`.
         -   [ ] Verify: `depNew` is downloaded, file saved, and entry added to `almd-lock.toml`.
-    -   [ ] **Sub-Task 7.2.5: Test `almd update` - Local dependency file missing**
+    -   [ ] **Sub-Task 7.2.5: Test `almd install` - Local dependency file missing**
         -   [ ] Setup: `depA` in `project.toml` and `almd-lock.toml`, but its local file is deleted.
-        -   [ ] Execute: `almd update depA`.
+        -   [ ] Execute: `almd install depA`.
         -   [ ] Verify: `depA` is re-downloaded based on `almd-lock.toml`'s pinned version (or `project.toml` if it dictates a newer one). `almd-lock.toml` reflects the version downloaded.
-    -   [ ] **Sub-Task 7.2.6: Test `almd update --force` - Force update on an up-to-date dependency**
+    -   [ ] **Sub-Task 7.2.6: Test `almd install --force` - Force install on an up-to-date dependency**
         -   [ ] Setup: `depA` is up-to-date.
-        -   [ ] Execute: `almd update --force depA`.
+        -   [ ] Execute: `almd install --force depA`.
         -   [ ] Verify: `depA` is re-downloaded and `almd-lock.toml` entry is refreshed, even if commit hash was the same.
-    -   [ ] **Sub-Task 7.2.7: Test `almd update <non_existent_dep>` - Non-existent dependency specified**
+    -   [ ] **Sub-Task 7.2.7: Test `almd install <non_existent_dep>` - Non-existent dependency specified**
         -   [ ] Setup: `project.toml` does not contain `non_existent_dep`.
-        -   [ ] Execute: `almd update non_existent_dep`.
-        -   [ ] Verify: Warning message printed, no other actions taken for this dep. Other valid deps (if `update` was called without args but one was invalid) should process normally.
-    -   [ ] **Sub-Task 7.2.8: Test `almd update` - Error during download**
+        -   [ ] Execute: `almd install non_existent_dep`.
+        -   [ ] Verify: Warning message printed, no other actions taken for this dep. Other valid deps (if `install` was called without args but one was invalid) should process normally.
+    -   [ ] **Sub-Task 7.2.8: Test `almd install` - Error during download**
         -   [ ] Setup: Mock server returns HTTP error for a dependency that needs update.
-        -   [ ] Execute: `almd update`.
+        -   [ ] Execute: `almd install`.
         -   [ ] Verify: Command reports error for that dependency. `almd-lock.toml` and local file for that dep remain unchanged or reflect pre-update state.
-    -   [ ] **Sub-Task 7.2.9: Test `almd update` - Error during source resolution (e.g., branch not found)**
+    -   [ ] **Sub-Task 7.2.9: Test `almd install` - Error during source resolution (e.g., branch not found)**
         -   [ ] Setup: `project.toml` points to `depA@nonexistent_branch`. Mock `internal/source` to simulate resolution failure.
-        -   [ ] Execute: `almd update depA`.
+        -   [ ] Execute: `almd install depA`.
         -   [ ] Verify: Command reports error for `depA`. No download attempt.
-    -   [ ] **Sub-Task 7.2.10: Test `almd update` - `project.toml` not found**
-        -   [ ] Setup: Run `update` in a temp dir without `project.toml`.
-        -   [ ] Execute: `almd update`.
+    -   [ ] **Sub-Task 7.2.10: Test `almd install` - `project.toml` not found**
+        -   [ ] Setup: Run `install` in a temp dir without `project.toml`.
+        -   [ ] Execute: `almd install`.
         -   [ ] Verify: Command returns an appropriate error.
 
 ## Milestone 8: `list` Command Implementation

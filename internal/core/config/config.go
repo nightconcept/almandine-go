@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 	"github.com/nightconcept/almandine-go/internal/core/project" // Corrected module path
@@ -11,9 +12,10 @@ import (
 const ProjectTomlName = "project.toml"
 const LockfileName = "almd-lock.toml"
 
-// LoadProjectToml reads the project.toml file from the given filePath and unmarshals it.
-func LoadProjectToml(filePath string) (*project.Project, error) {
-	data, err := os.ReadFile(filePath)
+// LoadProjectToml reads the project.toml file from the given dirPath and unmarshals it.
+func LoadProjectToml(dirPath string) (*project.Project, error) {
+	fullPath := filepath.Join(dirPath, ProjectTomlName)
+	data, err := os.ReadFile(fullPath)
 	if err != nil {
 		return nil, err
 	}
@@ -25,9 +27,9 @@ func LoadProjectToml(filePath string) (*project.Project, error) {
 	return &proj, nil
 }
 
-// WriteProjectToml marshals the Project data and writes it to the specified filePath.
+// WriteProjectToml marshals the Project data and writes it to the specified dirPath.
 // It will overwrite the file if it already exists.
-func WriteProjectToml(filePath string, data *project.Project) error {
+func WriteProjectToml(dirPath string, data *project.Project) error {
 	buf := new(bytes.Buffer)
 	if err := toml.NewEncoder(buf).Encode(data); err != nil {
 		return err
@@ -36,7 +38,8 @@ func WriteProjectToml(filePath string, data *project.Project) error {
 	// Write the TOML content to the file, overwriting if it exists.
 	// Create the file if it doesn't exist, with default permissions (0666 before umask).
 	// O_TRUNC ensures that if the file exists, its content is truncated.
-	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	fullPath := filepath.Join(dirPath, ProjectTomlName)
+	file, err := os.OpenFile(fullPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}
