@@ -281,6 +281,81 @@ func TestRemoveCommand_ProjectTomlNotFound(t *testing.T) {
 	assert.Equal(t, expectedErrorMsg, exitErr.Error(), "Error message mismatch")
 }
 
+func TestRemoveCommand_ManifestOnlyDependency(t *testing.T) {
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		require.NoError(t, os.Chdir(originalWd))
+	}()
+
+	projectTomlContent := `
+[package]
+name = "test-project-manifest-only"
+version = "0.1.0"
+
+[dependencies]
+manifestonlylib = { source = "github:user/repo/manifestonly.lua@jkl012", path = "libs/manifestonlylib.lua" }
+anotherlib = { source = "github:user/repo/another.lua@mno345", path = "libs/anotherlib.lua" }
+`
+	// Lockfile is empty or does not contain 'manifestonlylib'
+	// It might contain other unrelated dependencies.
+	lockTomlContent := `
+api_version = "1"
+
+[package.anotherlib]
+source = "https://raw.githubusercontent.com/user/repo/mno345/another.lua"
+path = "libs/anotherlib.lua"
+hash = "sha256:789"
+`
+	depFilesToCreate := map[string]string{
+		"libs/manifestonlylib.lua": "-- manifest only lib content",
+		"libs/anotherlib.lua":      "-- another lib content",
+	}
+	tempDir := setupRemoveTestEnvironment(t, projectTomlContent, lockTomlContent, depFilesToCreate)
+
+	err = os.Chdir(tempDir)
+	require.NoError(t, err, "Failed to change to temporary directory")
+
+	// Run the remove command for 'manifestonlylib'
+	err = runRemoveCommand(t, tempDir, "manifestonlylib")
+	require.NoError(t, err, "runRemoveCommand should not return a fatal error for manifest-only dependency")
+
+	// Verify project.toml is updated (manifestonlylib removed, anotherlib remains)
+	var projData struct {
+		Dependencies map[string]project.Dependency `toml:"dependencies"`
+	}
+	projBytes, err := os.ReadFile(filepath.Join(tempDir, config.ProjectTomlName))
+	require.NoError(t, err)
+	err = toml.Unmarshal(projBytes, &projData)
+	require.NoError(t, err)
+	assert.NotContains(t, projData.Dependencies, "manifestonlylib", "manifestonlylib should be removed from project.toml")
+	assert.Contains(t, projData.Dependencies, "anotherlib", "anotherlib should still exist in project.toml")
+
+	// Verify almd-lock.toml is processed (manifestonlylib was not there, anotherlib remains)
+	var lockData struct {
+		Package map[string]lockfile.PackageEntry `toml:"package"`
+	}
+	lockBytes, err := os.ReadFile(filepath.Join(tempDir, lockfile.LockfileName))
+	require.NoError(t, err)
+	err = toml.Unmarshal(lockBytes, &lockData)
+	require.NoError(t, err)
+	assert.NotContains(t, lockData.Package, "manifestonlylib", "manifestonlylib should not be in almd-lock.toml")
+	assert.Contains(t, lockData.Package, "anotherlib", "anotherlib should still exist in almd-lock.toml")
+
+	// Verify the 'manifestonlylib.lua' file is deleted
+	_, err = os.Stat(filepath.Join(tempDir, "libs", "manifestonlylib.lua"))
+	assert.True(t, os.IsNotExist(err), "manifestonlylib.lua should be deleted")
+
+	// Verify the 'anotherlib.lua' file still exists
+	_, err = os.Stat(filepath.Join(tempDir, "libs", "anotherlib.lua"))
+	assert.NoError(t, err, "anotherlib.lua should still exist")
+
+	// Verify 'libs' directory for 'manifestonlylib.lua' was removed if it became empty
+	// (In this case, 'libs' dir will still contain 'anotherlib.lua', so it won't be removed)
+	// If 'anotherlib.lua' was also removed in a different test, then 'libs' would be gone.
+	// Here, we just ensure 'manifestonlylib.lua' is gone.
+}
+
 // Helper Functions
 func setupRemoveTestEnvironment(t *testing.T, initialProjectTomlContent string, initialLockfileContent string, depFiles map[string]string) (tempDir string) {
 	t.Helper()

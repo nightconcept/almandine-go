@@ -301,10 +301,10 @@
         -   [x] Setup: Run `remove` in a temp dir without `project.toml`.
         -   [x] Execute: `almd remove <dependency_name>`.
         -   [x] Verify: Command returns an appropriate error.
-    -   [ ] **Sub-Task 5.2.6: Test `almd remove` - Dependency in Manifest but not Lockfile**
-        -   [ ] Setup: Temp dir with `project.toml` listing a dependency, `almd-lock.toml` exists but doesn't list it, and the dependency file exists.
-        -   [ ] Execute: `almd remove <dependency_name>`.
-        -   [ ] Verify:
+    -   [x] **Sub-Task 5.2.6: Test `almd remove` - Dependency in Manifest but not Lockfile**
+        -   [x] Setup: Temp dir with `project.toml` listing a dependency, `almd-lock.toml` exists but doesn't list it, and the dependency file exists.
+        -   [x] Execute: `almd remove <dependency_name>`.
+        -   [x] Verify:
             -   Dependency entry removed from `project.toml`.
             -   `almd-lock.toml` is processed (attempt to remove, no error if not found).
             -   Dependency file deleted.
