@@ -318,12 +318,12 @@
 
 **Goal:** Implement the `almd update` command to refresh dependencies based on `project.toml` and update `almd-lock.toml`.
 
--   [ ] **Task 6.1: `urfave/cli` Command Setup for `update`**
-    -   [ ] Define the `update` command structure (`cli.Command`) in `internal/cli/update/update.go`.
-    -   [ ] Add the command to the `urfave/cli` App in `main.go`.
-    -   [ ] Define optional `[dependency_names...]` argument.
-    -   [ ] Define flags: `--force, -f` (bool), `--verbose` (bool).
-    -   [ ] Manual Verification: Run `almd update --help` and confirm the command, argument, and flags are listed correctly.
+-   [x] **Task 6.1: `urfave/cli` Command Setup for `update`**
+    -   [x] Define the `update` command structure (`cli.Command`) in `internal/cli/update/update.go`.
+    -   [x] Add the command to the `urfave/cli` App in `main.go`.
+    -   [x] Define optional `[dependency_names...]` argument.
+    -   [x] Define flags: `--force, -f` (bool), `--verbose` (bool).
+    -   [x] Manual Verification: Run `almd update --help` and confirm the command, argument, and flags are listed correctly.
 
 -   [ ] **Task 6.2: Argument Parsing and Initial Loading**
     -   [ ] In the `update` command's `Action`, parse optional dependency names. If none, target all.
