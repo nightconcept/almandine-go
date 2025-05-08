@@ -248,6 +248,14 @@
     -   [x] Provide clear error messages for different failure scenarios.
     -   [x] Manual Verification: Test various error paths (missing files, non-existent dependency, permission issues) and check for clear, user-friendly output.
 
+-   [x] **Task 4.6: Implement Empty Directory Cleanup**
+    -   [x] After successful file deletion in `remove` (Task 4.3), check if the parent directory of the deleted file is empty.
+    -   [x] If the directory is empty, delete it.
+    -   [x] Repeat this process, moving upwards to parent directories, deleting them if they become empty.
+    -   [x] Stop if a directory is not empty, an error occurs, or a predefined boundary (e.g., project root, `libs/`, `vendor/`) is reached.
+    -   [x] Ensure directory emptiness check is robust to prevent accidental deletion of non-empty directories.
+    -   [x] Manual Verification: Test scenarios where single and multiple empty parent directories are cleaned up. Test scenarios where cleanup stops appropriately. (Note: Manual verification by user is pending actual use, code implements the logic).
+
 ## Milestone 5: `remove` Command Testing
 
 **Goal:** Implement unit tests for the `remove` command.

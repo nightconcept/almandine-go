@@ -7,4 +7,6 @@ devenv.local.nix
 
 project.toml
 almd-lock.toml
+build/
 build/almd
+build/almd.exe

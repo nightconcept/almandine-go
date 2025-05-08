@@ -3,11 +3,23 @@ package remove
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/nightconcept/almandine-go/internal/core/config"
 	"github.com/nightconcept/almandine-go/internal/core/lockfile"
 	"github.com/urfave/cli/v2"
 )
+
+// isDirEmpty checks if a directory is empty.
+// It returns true if the directory has no entries, false otherwise.
+// An error is returned if the directory cannot be read.
+func isDirEmpty(path string) (bool, error) {
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return false, fmt.Errorf("failed to read directory %s: %w", path, err)
+	}
+	return len(entries) == 0, nil
+}
 
 // RemoveCommand defines the structure for the 'remove' CLI command.
 func RemoveCommand() *cli.Command {
@@ -61,6 +73,51 @@ func RemoveCommand() *cli.Command {
 				fmt.Printf("Warning: Dependency file '%s' not found for deletion, but manifest updated.\n", dependencyPath)
 			} else {
 				fmt.Printf("Successfully deleted dependency file '%s'.\n", dependencyPath)
+
+				// Attempt to clean up empty parent directories
+				currentDir := filepath.Dir(dependencyPath)
+				projectRootAbs, err := filepath.Abs(".")
+				if err != nil {
+					fmt.Printf("Warning: Could not determine project root absolute path: %v. Skipping directory cleanup.\n", err)
+				} else {
+					for {
+						absCurrentDir, err := filepath.Abs(currentDir)
+						if err != nil {
+							fmt.Printf("Warning: Could not get absolute path for '%s': %v. Stopping directory cleanup.\n", currentDir, err)
+							break
+						}
+
+						// Stop conditions:
+						// 1. Reached project root
+						// 2. Reached a filesystem root (e.g., "/" or "C:\")
+						// 3. Current directory is "." (already at project root relative)
+						if absCurrentDir == projectRootAbs || filepath.Dir(absCurrentDir) == absCurrentDir || currentDir == "." {
+							break
+						}
+
+						empty, err := isDirEmpty(currentDir)
+						if err != nil {
+							fmt.Printf("Warning: Could not check if directory '%s' is empty: %v. Stopping directory cleanup.\n", currentDir, err)
+							break
+						}
+
+						if !empty {
+							// Directory is not empty, so stop
+							break
+						}
+
+						// Directory is empty, try to remove it
+						fmt.Printf("Info: Directory '%s' is empty, attempting to remove.\n", currentDir)
+						if err := os.Remove(currentDir); err != nil {
+							fmt.Printf("Warning: Failed to remove empty directory '%s': %v. Stopping directory cleanup.\n", currentDir, err)
+							break // Stop if removal fails (e.g., permissions)
+						}
+						fmt.Printf("Successfully removed empty directory '%s'.\n", currentDir)
+
+						// Move to parent directory
+						currentDir = filepath.Dir(currentDir)
+					}
+				}
 			}
 
 			// Update lockfile
