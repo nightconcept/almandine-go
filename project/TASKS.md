@@ -395,17 +395,17 @@
         -   [x] Execute: `almd install depA`.
         -   [x] Verify: Only `depA` is updated. `depB` remains as per old lockfile.
     -   [x] **Sub-Task 7.2.3: Test `almd install` - All dependencies up-to-date**
-        -   [ ] Setup: `project.toml` sources resolve to same commits as in `almd-lock.toml`. Local files exist.
-        -   [ ] Execute: `almd install`.
-        -   [ ] Verify: No files downloaded, no changes to `almd-lock.toml`. Appropriate "up-to-date" messages.
-    -   [ ] **Sub-Task 7.2.4: Test `almd install` - Dependency in `project.toml` but missing from `almd-lock.toml`**
-        -   [ ] Setup: `depNew` in `project.toml`, but no entry in `almd-lock.toml`.
-        -   [ ] Execute: `almd install`.
-        -   [ ] Verify: `depNew` is downloaded, file saved, and entry added to `almd-lock.toml`.
-    -   [ ] **Sub-Task 7.2.5: Test `almd install` - Local dependency file missing**
-        -   [ ] Setup: `depA` in `project.toml` and `almd-lock.toml`, but its local file is deleted.
-        -   [ ] Execute: `almd install depA`.
-        -   [ ] Verify: `depA` is re-downloaded based on `almd-lock.toml`'s pinned version (or `project.toml` if it dictates a newer one). `almd-lock.toml` reflects the version downloaded.
+        -   [x] Setup: `project.toml` sources resolve to same commits as in `almd-lock.toml`. Local files exist.
+        -   [x] Execute: `almd install`.
+        -   [x] Verify: No files downloaded, no changes to `almd-lock.toml`. Appropriate "up-to-date" messages.
+    -   [x] **Sub-Task 7.2.4: Test `almd install` - Dependency in `project.toml` but missing from `almd-lock.toml` (2025-05-08)**
+    -   [x] Setup: `depNew` in `project.toml`, but no entry in `almd-lock.toml`.
+    -   [x] Execute: `almd install`.
+    -   [x] Verify: `depNew` is downloaded, file saved, and entry added to `almd-lock.toml`.
+    -   [x] **Sub-Task 7.2.5: Test `almd install` - Local dependency file missing (2025-05-08)**
+    -   [x] Setup: `depA` in `project.toml` and `almd-lock.toml`, but its local file is deleted.
+    -   [x] Execute: `almd install depA`.
+    -   [x] Verify: `depA` is re-downloaded based on `almd-lock.toml`'s pinned version (or `project.toml` if it dictates a newer one). `almd-lock.toml` reflects the version downloaded.
     -   [ ] **Sub-Task 7.2.6: Test `almd install --force` - Force install on an up-to-date dependency**
         -   [ ] Setup: `depA` is up-to-date.
         -   [ ] Execute: `almd install --force depA`.

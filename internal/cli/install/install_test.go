@@ -439,3 +439,150 @@ hash = "commit:%s"
 	require.NoError(t, errUnmarshalProj, "Failed to unmarshal original project.toml content for comparison")
 	assert.Equal(t, originalProjCfg, currentProjCfg, "project.toml should be unchanged")
 }
+
+// Task 7.2.4: Test `almd install` - Dependency in `project.toml` but missing from `almd-lock.toml`
+func TestInstallCommand_DepInProjectToml_MissingFromLockfile(t *testing.T) {
+	depNewName := "depNew"
+	depNewPath := "libs/depNew.lua"
+	depNewContent := "local depNewContent = true"
+	depNewCommitSHA := "abcdef1234567890abcdef1234567890" // Valid hex
+
+	initialProjectToml := fmt.Sprintf(`
+[package]
+name = "test-missing-lockfile-entry"
+version = "0.1.0"
+
+[dependencies.%s]
+source = "github:testowner/newrepo/%s@main"
+path = "%s"
+`, depNewName, depNewPath, depNewPath)
+
+	// Lockfile is initially empty or does not contain depNew
+	initialLockfile := `
+api_version = "1"
+[package]
+# depNew is missing here
+`
+	tempDir := setupInstallTestEnvironment(t, initialProjectToml, initialLockfile, nil) // No initial mock files for depNew
+
+	// Mock server setup
+	githubAPIPathForDepNew := fmt.Sprintf("/repos/testowner/newrepo/commits?path=%s&sha=main&per_page=1", depNewPath)
+	githubAPIResponseForDepNew := fmt.Sprintf(`[{"sha": "%s"}]`, depNewCommitSHA)
+	rawDownloadPathDepNew := fmt.Sprintf("/testowner/newrepo/%s/%s", depNewCommitSHA, depNewPath)
+
+	pathResps := map[string]struct {
+		Body string
+		Code int
+	}{
+		githubAPIPathForDepNew: {Body: githubAPIResponseForDepNew, Code: http.StatusOK},
+		rawDownloadPathDepNew:  {Body: depNewContent, Code: http.StatusOK},
+	}
+	mockServer := startMockHTTPServer(t, pathResps)
+
+	originalGHAPIBaseURL := source.GithubAPIBaseURL
+	source.GithubAPIBaseURL = mockServer.URL
+	defer func() { source.GithubAPIBaseURL = originalGHAPIBaseURL }()
+
+	// --- Run Command ---
+	err := runInstallCommand(t, tempDir) // Install all
+	require.NoError(t, err, "almd install command failed")
+
+	// --- Assertions ---
+	// 1. Verify depNew file is created with correct content
+	depNewFilePath := filepath.Join(tempDir, depNewPath)
+	contentBytes, readErr := os.ReadFile(depNewFilePath)
+	require.NoError(t, readErr, "Failed to read depNew file: %s", depNewFilePath)
+	assert.Equal(t, depNewContent, string(contentBytes), "depNew file content mismatch")
+
+	// 2. Verify almd-lock.toml is updated for depNew
+	lockFilePath := filepath.Join(tempDir, lockfile.LockfileName)
+	updatedLockCfg := readAlmdLockToml(t, lockFilePath)
+
+	require.NotNil(t, updatedLockCfg.Package, "Packages map in almd-lock.toml is nil")
+	depNewLockEntry, ok := updatedLockCfg.Package[depNewName]
+	require.True(t, ok, "depNew entry not found in almd-lock.toml after install")
+
+	expectedLockSourceURL := mockServer.URL + rawDownloadPathDepNew
+	assert.Equal(t, expectedLockSourceURL, depNewLockEntry.Source, "depNew lockfile source URL mismatch")
+	assert.Equal(t, depNewPath, depNewLockEntry.Path, "depNew lockfile path mismatch")
+	assert.Equal(t, "commit:"+depNewCommitSHA, depNewLockEntry.Hash, "depNew lockfile hash mismatch")
+}
+
+// Task 7.2.5: Test `almd install` - Local dependency file missing
+func TestInstallCommand_LocalFileMissing(t *testing.T) {
+	depAName := "depA"
+	depAPath := "libs/depA.lua"
+	depAContent := "local depA_content_from_lock = true"      // Content served if lockfile's version is fetched
+	depALockedCommitSHA := "fedcba0987654321fedcba0987654321" // Valid hex
+
+	initialProjectToml := fmt.Sprintf(`
+[package]
+name = "test-local-file-missing"
+version = "0.1.0"
+
+[dependencies.%s]
+source = "github:testowner/testrepo/%s@main" # 'main' might resolve to the same or different commit
+path = "%s"
+`, depAName, depAPath, depAPath)
+
+	// Lockfile has depA, but its local file will be missing
+	initialLockfile := fmt.Sprintf(`
+api_version = "1"
+
+[package.%s]
+source = "https://raw.githubusercontent.com/testowner/testrepo/%s/%s" # URL with locked SHA
+path = "%s"
+hash = "commit:%s"
+`, depAName, depALockedCommitSHA, depAPath, depAPath, depALockedCommitSHA)
+
+	// No mock files initially for depA, simulating it's missing
+	tempDir := setupInstallTestEnvironment(t, initialProjectToml, initialLockfile, nil)
+
+	// Mock server setup
+	// Case 1: 'main' in project.toml resolves to the *same* commit as in lockfile.
+	// The install logic should then use the lockfile's source URL to re-download.
+	githubAPIPathForDepA := fmt.Sprintf("/repos/testowner/testrepo/commits?path=%s&sha=main&per_page=1", depAPath)
+	githubAPIResponseForDepA := fmt.Sprintf(`[{"sha": "%s"}]`, depALockedCommitSHA) // 'main' resolves to the locked SHA
+
+	// Raw download path for depA using the locked commit SHA (from lockfile's source or resolved from project.toml)
+	rawDownloadPathDepA := fmt.Sprintf("/testowner/testrepo/%s/%s", depALockedCommitSHA, depAPath)
+
+	pathResps := map[string]struct {
+		Body string
+		Code int
+	}{
+		githubAPIPathForDepA: {Body: githubAPIResponseForDepA, Code: http.StatusOK},
+		rawDownloadPathDepA:  {Body: depAContent, Code: http.StatusOK}, // Content for the locked SHA
+	}
+	mockServer := startMockHTTPServer(t, pathResps)
+
+	originalGHAPIBaseURL := source.GithubAPIBaseURL
+	source.GithubAPIBaseURL = mockServer.URL
+	defer func() { source.GithubAPIBaseURL = originalGHAPIBaseURL }()
+
+	// --- Run Command for depA ---
+	err := runInstallCommand(t, tempDir, depAName)
+	require.NoError(t, err, "almd install %s command failed", depAName)
+
+	// --- Assertions ---
+	// 1. Verify depA file is re-downloaded
+	depAFilePath := filepath.Join(tempDir, depAPath)
+	contentBytes, readErr := os.ReadFile(depAFilePath)
+	require.NoError(t, readErr, "Failed to read re-downloaded depA file: %s", depAFilePath)
+	assert.Equal(t, depAContent, string(contentBytes), "depA file content mismatch after re-download")
+
+	// 2. Verify almd-lock.toml entry for depA is still correct (or updated if project.toml dictated newer)
+	// In this test, since 'main' resolved to the same locked SHA, the lockfile entry should effectively be the same.
+	lockFilePath := filepath.Join(tempDir, lockfile.LockfileName)
+	updatedLockCfg := readAlmdLockToml(t, lockFilePath)
+
+	require.NotNil(t, updatedLockCfg.Package, "Packages map in almd-lock.toml is nil")
+	depALockEntry, ok := updatedLockCfg.Package[depAName]
+	require.True(t, ok, "depA entry not found in almd-lock.toml after install")
+
+	// Expected raw source URL in lockfile should point to the mock server's path for the locked commit
+	expectedLockSourceURL := mockServer.URL + rawDownloadPathDepA
+	assert.Equal(t, expectedLockSourceURL, depALockEntry.Source, "depA lockfile source URL mismatch")
+	assert.Equal(t, depAPath, depALockEntry.Path, "depA lockfile path mismatch")
+	assert.Equal(t, "commit:"+depALockedCommitSHA, depALockEntry.Hash, "depA lockfile hash mismatch")
+}
