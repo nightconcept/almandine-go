@@ -14,6 +14,15 @@ import (
 )
 
 func TestRemoveCommand_SuccessfulRemoval(t *testing.T) {
+	// Store original working directory and restore it after test
+	originalWd, err := os.Getwd()
+	t.Logf("Test starting in directory: %s", originalWd)
+	require.NoError(t, err, "Failed to get current working directory")
+	defer func() {
+		t.Logf("Test cleanup: restoring directory to %s", originalWd)
+		require.NoError(t, os.Chdir(originalWd), "Failed to restore original working directory")
+	}()
+
 	// Create initial project.toml content
 	projectToml := `
 [package]
@@ -42,8 +51,20 @@ hash = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 	// Set up test environment
 	tempDir := setupRemoveTestEnvironment(t, projectToml, lockToml, depFiles)
 
+	// After setup, verify files exist
+	if _, err := os.Stat(filepath.Join(tempDir, "project.toml")); err != nil {
+		t.Logf("After setup - project.toml status: %v", err)
+	} else {
+		t.Log("After setup - project.toml exists")
+	}
+
+	// Change to temp directory before running the test
+	err = os.Chdir(tempDir)
+	t.Logf("Changed to temp directory: %s", tempDir)
+	require.NoError(t, err, "Failed to change to temporary directory")
+
 	// Run the remove command
-	err := runRemoveCommand(t, tempDir, "testlib")
+	err = runRemoveCommand(t, tempDir, "testlib")
 	require.NoError(t, err)
 
 	// Verify project.toml no longer contains the dependency
@@ -81,6 +102,77 @@ hash = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 	assert.True(t, os.IsNotExist(err), "Empty libs directory should be removed")
 }
 
+func TestRemove_DependencyNotFound(t *testing.T) {
+	// Store original working directory
+	originalWd, err := os.Getwd()
+	t.Logf("Test starting in directory: %s", originalWd)
+	require.NoError(t, err, "Failed to get current working directory")
+	defer func() {
+		t.Logf("Test cleanup: restoring directory to %s", originalWd)
+		require.NoError(t, os.Chdir(originalWd), "Failed to restore original working directory")
+	}()
+
+	// Create a temp dir for the test
+	tempDir := t.TempDir()
+
+	// Create a project.toml without the dependency we'll try to remove
+	projectToml := `
+[package]
+name = "test-project"
+version = "0.1.0"
+
+[dependencies]
+existing-dep = { source = "github:user/repo/file.lua", path = "libs/existing-dep.lua" }
+`
+	err = os.WriteFile(filepath.Join(tempDir, "project.toml"), []byte(projectToml), 0644)
+	require.NoError(t, err)
+
+	// Create a lockfile that matches project.toml
+	lockfileToml := `
+api_version = "1"
+
+[package.existing-dep]
+source = "https://raw.githubusercontent.com/user/repo/main/file.lua"
+path = "libs/existing-dep.lua"
+hash = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+`
+	err = os.WriteFile(filepath.Join(tempDir, "almd-lock.toml"), []byte(lockfileToml), 0644)
+	require.NoError(t, err)
+
+	// Create the existing dependency file to ensure we don't accidentally delete it
+	existingDepDir := filepath.Join(tempDir, "libs")
+	err = os.MkdirAll(existingDepDir, 0755)
+	require.NoError(t, err)
+	err = os.WriteFile(filepath.Join(existingDepDir, "existing-dep.lua"), []byte("-- test content"), 0644)
+	require.NoError(t, err)
+
+	// Change to temp directory before running command
+	err = os.Chdir(tempDir)
+	t.Logf("Changed to temp directory: %s", tempDir)
+	require.NoError(t, err, "Failed to change to temporary directory")
+
+	// Execute the remove command
+	err = runRemoveCommand(t, tempDir, "non-existent-dep")
+
+	// Verify expectations
+	assert.Error(t, err)
+	assert.Equal(t, "Error: Dependency 'non-existent-dep' not found in project.toml.", err.Error())
+	assert.Equal(t, 1, err.(cli.ExitCoder).ExitCode())
+
+	// Verify project.toml and almd-lock.toml remain unchanged
+	currentProjectToml, err := os.ReadFile(filepath.Join(tempDir, "project.toml"))
+	require.NoError(t, err)
+	assert.Equal(t, string(projectToml), string(currentProjectToml))
+
+	currentLockfileToml, err := os.ReadFile(filepath.Join(tempDir, "almd-lock.toml"))
+	require.NoError(t, err)
+	assert.Equal(t, string(lockfileToml), string(currentLockfileToml))
+
+	// Verify the existing dependency file was not touched
+	_, err = os.Stat(filepath.Join(existingDepDir, "existing-dep.lua"))
+	assert.NoError(t, err, "existing dependency file should not be deleted")
+}
+
 // Helper Functions
 func setupRemoveTestEnvironment(t *testing.T, initialProjectTomlContent string, initialLockfileContent string, depFiles map[string]string) (tempDir string) {
 	t.Helper()
@@ -112,14 +204,7 @@ func setupRemoveTestEnvironment(t *testing.T, initialProjectTomlContent string, 
 func runRemoveCommand(t *testing.T, workDir string, removeCmdArgs ...string) error {
 	t.Helper()
 
-	originalWd, err := os.Getwd()
-	require.NoError(t, err, "Failed to get current working directory")
-	err = os.Chdir(workDir)
-	require.NoError(t, err, "Failed to change to working directory: %s", workDir)
-	defer func() {
-		require.NoError(t, os.Chdir(originalWd), "Failed to restore original working directory")
-	}()
-
+	// Remove working directory handling from here since it's now handled in the test
 	app := &cli.App{
 		Name: "almd-test-remove",
 		Commands: []*cli.Command{

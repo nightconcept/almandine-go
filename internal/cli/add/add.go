@@ -1,3 +1,7 @@
+// Title: Almandine CLI Add Command
+// Purpose: Implements the 'add' command for the Almandine CLI, which downloads
+// a specified dependency, saves it to the project, and updates project
+// configuration and lock files.
 package add
 
 import (

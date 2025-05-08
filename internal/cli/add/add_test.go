@@ -1,3 +1,7 @@
+// Title: Almandine CLI Add Command Tests
+// Purpose: Contains test cases for the 'add' command of the Almandine CLI,
+// covering various scenarios including successful additions, error handling,
+// and interactions with project configuration and lock files.
 package add
 
 import (

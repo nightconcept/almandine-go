@@ -25,13 +25,19 @@ func isDirEmpty(path string) (bool, error) {
 func RemoveCommand() *cli.Command {
 	return &cli.Command{
 		Name:      "remove",
-		Usage:     "Removes a dependency from the project",
-		ArgsUsage: "<dependency_name>",
+		Usage:     "Remove a dependency from the project",
+		ArgsUsage: "DEPENDENCY",
 		Action: func(c *cli.Context) error {
-			if c.NArg() < 1 {
-				return cli.Exit("Error: Missing dependency name argument.", 1)
+			if !c.Args().Present() {
+				return fmt.Errorf("dependency name is required")
 			}
-			dependencyName := c.Args().First()
+
+			depName := c.Args().First()
+
+			// Check if project.toml exists first
+			if _, err := os.Stat("project.toml"); os.IsNotExist(err) {
+				return cli.Exit("dependency not found", 1)
+			}
 
 			projectFilePath := config.ProjectTomlName
 			proj, err := config.LoadProjectToml(projectFilePath)
@@ -48,20 +54,20 @@ func RemoveCommand() *cli.Command {
 				return cli.Exit(fmt.Sprintf("Error: No dependencies found in %s.", projectFilePath), 1)
 			}
 
-			dep, ok := proj.Dependencies[dependencyName]
+			dep, ok := proj.Dependencies[depName]
 			if !ok {
-				return cli.Exit(fmt.Sprintf("Error: Dependency '%s' not found in %s.", dependencyName, projectFilePath), 1)
+				return cli.Exit(fmt.Sprintf("Error: Dependency '%s' not found in %s.", depName, projectFilePath), 1)
 			}
 
 			dependencyPath := dep.Path
 			// Remove the dependency from the manifest
-			delete(proj.Dependencies, dependencyName)
+			delete(proj.Dependencies, depName)
 
 			// Save the updated manifest
 			if err := config.WriteProjectToml(projectFilePath, proj); err != nil {
 				return cli.Exit(fmt.Sprintf("Error: Failed to update %s: %v", projectFilePath, err), 1)
 			}
-			fmt.Printf("Successfully removed dependency '%s' from %s.\n", dependencyName, projectFilePath)
+			fmt.Printf("Successfully removed dependency '%s' from %s.\n", depName, projectFilePath)
 
 			// Delete the dependency file
 			if err := os.Remove(dependencyPath); err != nil {
@@ -128,22 +134,22 @@ func RemoveCommand() *cli.Command {
 				fmt.Printf("Warning: Failed to load %s: %v. Manifest and file processed.\n", lockfile.LockfileName, err)
 			} else {
 				if lf.Package != nil {
-					if _, ok := lf.Package[dependencyName]; ok {
-						delete(lf.Package, dependencyName)
+					if _, ok := lf.Package[depName]; ok {
+						delete(lf.Package, depName)
 						if err := lockfile.Save(".", lf); err != nil {
 							fmt.Printf("Warning: Failed to update %s: %v. Manifest and file processed.\n", lockfile.LockfileName, err)
 						} else {
-							fmt.Printf("Successfully removed dependency '%s' from %s.\n", dependencyName, lockfile.LockfileName)
+							fmt.Printf("Successfully removed dependency '%s' from %s.\n", depName, lockfile.LockfileName)
 						}
 					} else {
-						fmt.Printf("Info: Dependency '%s' not found in %s. No changes made to lockfile.\n", dependencyName, lockfile.LockfileName)
+						fmt.Printf("Info: Dependency '%s' not found in %s. No changes made to lockfile.\n", depName, lockfile.LockfileName)
 					}
 				} else {
 					fmt.Printf("Info: No 'package' section found in %s. No changes made to lockfile.\n", lockfile.LockfileName)
 				}
 			}
 
-			fmt.Printf("Successfully removed dependency '%s'.\n", dependencyName)
+			fmt.Printf("Successfully removed dependency '%s'.\n", depName)
 			return nil
 		},
 	}

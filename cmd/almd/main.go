@@ -1,5 +1,6 @@
-// Declare the package name. The main package is special in Go,
-// it's where the program execution starts.
+// Title: Almandine CLI Application Entry Point
+// Purpose: Initializes and runs the Almandine command-line interface application,
+// defining its commands and default behavior.
 package main
 
 // Import the "fmt" package, which provides functions for formatted I/O

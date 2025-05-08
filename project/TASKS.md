@@ -274,18 +274,18 @@
         -   [x] Define `TestMain` if any global setup/teardown for `remove` tests is needed. (Skipped for now, can be added if specific global setup is identified)
         -   [x] Create helper: `setupRemoveTestEnvironment(t *testing.T, initialProjectTomlContent string, initialLockfileContent string, depFiles map[string]string) (tempDir string)` that creates a temp dir, `project.toml`, `almd-lock.toml`, and specified dependency files.
         -   [x] Create helper: `runRemoveCommand(t *testing.T, tempDir string, cliArgs ...string) error` to set up and run the `remove` command's action.
-    -   [ ] **Sub-Task 5.2.2: Test `almd remove` - Successful Removal**
-        -   [ ] Setup: Temp dir with `project.toml`, `almd-lock.toml`, and a dummy dependency file, all correctly linked.
-        -   [ ] Execute: `almd remove <dependency_name>`.
-        -   [ ] Verify:
+    -   [x] **Sub-Task 5.2.2: Test `almd remove` - Successful Removal**
+        -   [x] Setup: Temp dir with `project.toml`, `almd-lock.toml`, and a dummy dependency file, all correctly linked.
+        -   [x] Execute: `almd remove <dependency_name>`.
+        -   [x] Verify:
             -   Dependency entry removed from `project.toml`.
             -   Dependency entry removed from `almd-lock.toml`.
             -   Dependency file deleted from the filesystem.
             -   Command returns no error.
-    -   [ ] **Sub-Task 5.2.3: Test `almd remove` - Error: Dependency Not Found in Manifest**
-        -   [ ] Setup: Temp dir with `project.toml` that does not contain the target dependency.
-        -   [ ] Execute: `almd remove <non_existent_dependency_name>`.
-        -   [ ] Verify:
+    -   [x] **Sub-Task 5.2.3: Test `almd remove` - Error: Dependency Not Found in Manifest**
+        -   [x] Setup: Temp dir with `project.toml` that does not contain the target dependency.
+        -   [x] Execute: `almd remove <non_existent_dependency_name>`.
+        -   [x] Verify:
             -   Command returns an appropriate error.
             -   `project.toml` and `almd-lock.toml` remain unchanged.
             -   No file deletion attempted for the non-existent dependency.
