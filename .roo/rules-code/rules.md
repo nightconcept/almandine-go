@@ -70,7 +70,7 @@
 ### 5.4. Documentation & Comments
 
 * **Docstrings:** Required for public functions, classes, modules (standard format).
-* **Code Comments:** Explain non-obvious logic, complex algorithms, decisions (*why*, not *what*).
+* **Code Comments:** Explain non-obvious logic, complex algorithms, decisions (*why*, not *what*). Write less comments.
 * **Reasoning Comments:** Use `# Reason:` for complex block rationale.
 * **README Updates:** Update `project/README.md` for core features, dependency changes, or setup/build modifications.
 
