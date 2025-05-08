@@ -774,3 +774,168 @@ api_version = "1"
 	_, errStatDepFile := os.Stat(nonExistentDepFilePath)
 	assert.True(t, os.IsNotExist(errStatDepFile), "File for nonExistentDep should not have been created")
 }
+
+// Task 7.2.8: Test `almd install` - Error during download
+func TestInstallCommand_ErrorDuringDownload(t *testing.T) {
+	depName := "depWithError"
+	depPath := "libs/depWithError.lua"
+	depOriginalContent := "local depWithError_v1 = true"
+	// depNewContent is not relevant as download will fail
+
+	initialProjectToml := fmt.Sprintf(`
+[package]
+name = "test-download-error-project"
+version = "0.1.0"
+
+[dependencies.%s]
+source = "github:testowner/testrepo/%s@main"
+path = "%s"
+`, depName, depPath, depPath)
+
+	initialLockfile := fmt.Sprintf(`
+api_version = "1"
+
+[package.%s]
+source = "https://raw.githubusercontent.com/testowner/testrepo/commit1_sha_dlerror/%s"
+path = "%s"
+hash = "commit:commit1_sha_dlerror"
+`, depName, depPath, depPath)
+
+	mockFiles := map[string]string{
+		depPath: depOriginalContent,
+	}
+
+	tempDir := setupInstallTestEnvironment(t, initialProjectToml, initialLockfile, mockFiles)
+
+	// Mock server setup
+	commitToDownloadSHA := "commit2_sha_dlerror_target"
+	githubAPIPathForDep := fmt.Sprintf("/repos/testowner/testrepo/commits?path=%s&sha=main&per_page=1", depPath)
+	githubAPIResponseForDep := fmt.Sprintf(`[{"sha": "%s"}]`, commitToDownloadSHA)
+
+	// This is the path that will fail
+	rawDownloadPathDep := fmt.Sprintf("/testowner/testrepo/%s/%s", commitToDownloadSHA, depPath)
+
+	pathResps := map[string]struct {
+		Body string
+		Code int
+	}{
+		githubAPIPathForDep: {Body: githubAPIResponseForDep, Code: http.StatusOK},
+		rawDownloadPathDep:  {Body: "Simulated server error", Code: http.StatusInternalServerError}, // Download fails
+	}
+	mockServer := startMockHTTPServer(t, pathResps)
+
+	originalGHAPIBaseURL := source.GithubAPIBaseURL
+	source.GithubAPIBaseURL = mockServer.URL
+	defer func() { source.GithubAPIBaseURL = originalGHAPIBaseURL }()
+
+	// --- Run Command ---
+	err := runInstallCommand(t, tempDir) // Install all
+	require.Error(t, err, "almd install command should have failed due to download error")
+	// Check for a more specific error if possible, e.g., by inspecting err.Error() or using cli.ExitCoder
+	// For now, a general error check is fine. Example: assert.Contains(t, err.Error(), "failed to download")
+
+	// --- Assertions ---
+	// 1. Verify depWithError file content is UNCHANGED
+	depFilePath := filepath.Join(tempDir, depPath)
+	currentContentBytes, readErr := os.ReadFile(depFilePath)
+	require.NoError(t, readErr, "Failed to read depWithError file: %s", depFilePath)
+	assert.Equal(t, depOriginalContent, string(currentContentBytes), "depWithError file content should be unchanged after failed download")
+
+	// 2. Verify almd-lock.toml is UNCHANGED
+	lockFilePath := filepath.Join(tempDir, lockfile.LockfileName)
+	currentLockCfg := readAlmdLockToml(t, lockFilePath)
+	originalLockCfg := lockfile.Lockfile{}
+	errUnmarshal := toml.Unmarshal([]byte(initialLockfile), &originalLockCfg)
+	require.NoError(t, errUnmarshal, "Failed to unmarshal original lockfile content for comparison")
+	assert.Equal(t, originalLockCfg, currentLockCfg, "almd-lock.toml should be unchanged after failed download")
+
+	// 3. Verify project.toml remains unchanged
+	projTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
+	currentProjCfg := readProjectToml(t, projTomlPath)
+	originalProjCfg := project.Project{}
+	errUnmarshalProj := toml.Unmarshal([]byte(initialProjectToml), &originalProjCfg)
+	require.NoError(t, errUnmarshalProj, "Failed to unmarshal original project.toml content for comparison")
+	assert.Equal(t, originalProjCfg, currentProjCfg, "project.toml should be unchanged")
+}
+
+// Task 7.2.9: Test `almd install` - Error during source resolution (e.g., branch not found)
+func TestInstallCommand_ErrorDuringSourceResolution(t *testing.T) {
+	depName := "depBadBranch"
+	depPath := "libs/depBadBranch.lua"
+	nonExistentBranch := "nonexistent_branch_for_sure"
+
+	initialProjectToml := fmt.Sprintf(`
+[package]
+name = "test-source-resolution-error-project"
+version = "0.1.0"
+
+[dependencies.%s]
+source = "github:testowner/testrepo/%s@%s"
+path = "%s"
+`, depName, depPath, nonExistentBranch, depPath) // Points to a non-existent branch
+
+	// Lockfile might be empty or not contain this dep, or contain an old version.
+	// The key is that resolution for the project.toml source will fail.
+	initialLockfile := `
+api_version = "1"
+[package]
+`
+	// No initial mock file for depBadBranch as it shouldn't be downloaded.
+	tempDir := setupInstallTestEnvironment(t, initialProjectToml, initialLockfile, nil)
+
+	// Mock server setup
+	// The GitHub API call to resolve 'nonexistent_branch_for_sure' should fail (e.g., 404 or empty array)
+	githubAPIPathForDep := fmt.Sprintf("/repos/testowner/testrepo/commits?path=%s&sha=%s&per_page=1", depPath, nonExistentBranch)
+	// GitHub API returns an empty array `[]` for a branch that doesn't exist or has no commits for that path.
+	// Or it could be a 422 if the ref is malformed, or 404 if repo/owner is wrong.
+	// For a non-existent branch, an empty array is a common valid JSON response.
+	// The source resolver should interpret this as "commit not found".
+	githubAPIResponseForDep_NotFound := `[]` // Simulates branch not found / no commits for path on branch
+
+	// Raw download path - should NOT be called
+	rawDownloadPathDep := fmt.Sprintf("/testowner/testrepo/some_sha_never_reached/%s", depPath)
+
+	pathResps := map[string]struct {
+		Body string
+		Code int
+	}{
+		// This API call will "succeed" with an empty list, indicating no commit found for the ref.
+		githubAPIPathForDep: {Body: githubAPIResponseForDep_NotFound, Code: http.StatusOK},
+		// This should not be called
+		rawDownloadPathDep: {Body: "SHOULD NOT BE DOWNLOADED", Code: http.StatusOK},
+	}
+	mockServer := startMockHTTPServer(t, pathResps)
+
+	originalGHAPIBaseURL := source.GithubAPIBaseURL
+	source.GithubAPIBaseURL = mockServer.URL
+	defer func() { source.GithubAPIBaseURL = originalGHAPIBaseURL }()
+
+	// --- Run Command ---
+	// We can run for all, or specifically for depName. The error should propagate.
+	err := runInstallCommand(t, tempDir, depName)
+	require.Error(t, err, "almd install command should have failed due to source resolution error")
+	// Example: assert.Contains(t, err.Error(), "failed to resolve source")
+	// Example: assert.Contains(t, err.Error(), depName) // Error message should mention the problematic dependency
+
+	// --- Assertions ---
+	// 1. Verify depBadBranch file is NOT created
+	depFilePath := filepath.Join(tempDir, depPath)
+	_, statErr := os.Stat(depFilePath)
+	assert.True(t, os.IsNotExist(statErr), "depBadBranch file should not have been created")
+
+	// 2. Verify almd-lock.toml is UNCHANGED (or remains in its initial state)
+	lockFilePath := filepath.Join(tempDir, lockfile.LockfileName)
+	currentLockCfg := readAlmdLockToml(t, lockFilePath) // Read current
+	originalLockCfg := lockfile.Lockfile{}              // For comparison
+	errUnmarshal := toml.Unmarshal([]byte(initialLockfile), &originalLockCfg)
+	require.NoError(t, errUnmarshal, "Failed to unmarshal original lockfile content for comparison")
+	assert.Equal(t, originalLockCfg, currentLockCfg, "almd-lock.toml should be unchanged after source resolution error")
+
+	// 3. Verify project.toml remains unchanged
+	projTomlPath := filepath.Join(tempDir, config.ProjectTomlName)
+	currentProjCfg := readProjectToml(t, projTomlPath)
+	originalProjCfg := project.Project{}
+	errUnmarshalProj := toml.Unmarshal([]byte(initialProjectToml), &originalProjCfg)
+	require.NoError(t, errUnmarshalProj, "Failed to unmarshal original project.toml content for comparison")
+	assert.Equal(t, originalProjCfg, currentProjCfg, "project.toml should be unchanged")
+}

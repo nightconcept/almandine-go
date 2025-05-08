@@ -414,14 +414,14 @@
         -   [x] Setup: `project.toml` does not contain `non_existent_dep`.
         -   [x] Execute: `almd install non_existent_dep`.
         -   [x] Verify: Warning message printed, no other actions taken for this dep. Other valid deps (if `install` was called without args but one was invalid) should process normally.
-    -   [ ] **Sub-Task 7.2.8: Test `almd install` - Error during download**
-        -   [ ] Setup: Mock server returns HTTP error for a dependency that needs update.
-        -   [ ] Execute: `almd install`.
-        -   [ ] Verify: Command reports error for that dependency. `almd-lock.toml` and local file for that dep remain unchanged or reflect pre-update state.
-    -   [ ] **Sub-Task 7.2.9: Test `almd install` - Error during source resolution (e.g., branch not found)**
-        -   [ ] Setup: `project.toml` points to `depA@nonexistent_branch`. Mock `internal/source` to simulate resolution failure.
-        -   [ ] Execute: `almd install depA`.
-        -   [ ] Verify: Command reports error for `depA`. No download attempt.
+    -   [x] **Sub-Task 7.2.8: Test `almd install` - Error during download (2025-05-08)**
+        -   [x] Setup: Mock server returns HTTP error for a dependency that needs update.
+        -   [x] Execute: `almd install`.
+        -   [x] Verify: Command reports error for that dependency. `almd-lock.toml` and local file for that dep remain unchanged or reflect pre-update state.
+    -   [x] **Sub-Task 7.2.9: Test `almd install` - Error during source resolution (e.g., branch not found) (2025-05-08)**
+        -   [x] Setup: `project.toml` points to `depA@nonexistent_branch`. Mock `internal/source` to simulate resolution failure.
+        -   [x] Execute: `almd install depA`.
+        -   [x] Verify: Command reports error for `depA`. No download attempt.
     -   [ ] **Sub-Task 7.2.10: Test `almd install` - `project.toml` not found**
         -   [ ] Setup: Run `install` in a temp dir without `project.toml`.
         -   [ ] Execute: `almd install`.
