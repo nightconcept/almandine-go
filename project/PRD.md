@@ -77,8 +77,59 @@ Almandine (`almd` as the CLI command) is a lightweight package manager for Go pr
         -   **Output:** Prints confirmation messages for successful removal from manifest, file deletion (or warnings if deletion fails), and lockfile update. Reports errors clearly via `urfave/cli`.
     -   **Arguments & Flags (`urfave/cli`):**
         -   `<dependency_name>`: Argument accessed from `*cli.Context` for the logical name of the dependency to remove (required).
--   **`update`**
--   **`list`**
+-   **`update` command:**
+    -   **Goal:** Updates specified dependencies to the versions dictated by `project.toml`, or refreshes all dependencies if no specific ones are named. It ensures that the local project state (downloaded files and `almd-lock.toml`) aligns with the desired state specified in `project.toml`.
+    -   **Implementation:** To be implemented as a `urfave/cli` command (e.g., in `internal/cli/update/update.go`).
+    -   **Functionality:**
+        -   **Argument Parsing:** Accepts an optional list of `<dependency_name>` arguments from `*cli.Context`. If no names are provided, it targets all dependencies listed in `project.toml`.
+        -   **Manifest & Lockfile Loading:** Loads `project.toml` (using `internal/core/config`) and `almd-lock.toml` (using `internal/core/lockfile`).
+        -   **Dependency Iteration:** For each targeted dependency:
+            1.  **Retrieve Project Configuration:** Fetches the dependency's configuration (its canonical `source` identifier and `path`) from the `[dependencies]` table in `project.toml`. If a specified dependency name is not found in `project.toml`, it will be skipped with a warning.
+            2.  **Resolve Target Version/Source:** The `source` string from `project.toml` (e.g., `github:user/repo/file.lua@main` or `github:user/repo/file.lua@v1.2.3`) defines the desired state. This source identifier is resolved to a concrete, downloadable raw URL and a definitive commit hash or version identifier (e.g., the latest commit hash on the `main` branch, or the commit hash corresponding to tag `v1.2.3`). This resolution logic resides in `internal/source`.
+            3.  **Retrieve Current Lockfile State:** Fetches the current locked state for this dependency from `almd-lock.toml`, if an entry exists. This includes the exact raw `source` URL previously used for download and the integrity `hash` (e.g., `commit:<hash>` or `sha256:<hash>`).
+            4.  **Comparison and Decision Logic:**
+                -   An update is required if:
+                    -   The resolved target commit hash (from step 2) differs from the commit hash recorded in `almd-lock.toml` (from step 3).
+                    -   The dependency is present in `project.toml` but missing from `almd-lock.toml`.
+                    -   The local file at the dependency's `path` is missing, even if hashes might otherwise match.
+                    -   A `--force` flag is used by the user.
+                -   If the resolved target commit hash matches the one in `almd-lock.toml` and the local file exists, the dependency is considered up-to-date with its `project.toml` specification, and no action is taken unless forced.
+            5.  **Perform Update (if required):**
+                -   The file is downloaded from the resolved target raw URL (using `internal/downloader`).
+                -   The integrity hash is calculated for the downloaded content (commit hash is preferred if available from the source URL, otherwise SHA256 via `internal/hasher`).
+                -   The downloaded file is saved to its designated `path` (from `project.toml`), ensuring that any necessary parent directories are created.
+                -   The `almd-lock.toml` file is updated: the entry for the dependency will store the exact raw download URL used, the `path`, and the new integrity `hash`.
+                -   **Note on `project.toml`:** The `source` field in `project.toml` typically remains as specified by the user (e.g., it can continue to point to a branch like `main`). The `almd-lock.toml` file is always updated to store the pinned, concrete version details (specific commit hash and exact download URL).
+        -   **Output:** Provides clear feedback, indicating which dependencies were checked, which were updated, and which were already up-to-date. Errors encountered during the process are reported clearly via `urfave/cli`.
+    -   **Arguments & Flags (`urfave/cli`):**
+        -   `[dependency_names...]`: Optional argument(s) accessed from `*cli.Context` specifying the logical names of the dependencies to update. If omitted, all dependencies defined in `project.toml` are targeted.
+        -   `--force`, `-f`: Optional flag (`cli.BoolFlag`) to compel re-downloading of files and updating of lockfile entries, even if the resolved version appears to be identical to the currently locked version.
+        -   `--verbose`: Optional flag (`cli.BoolFlag`) to enable more detailed logging output during execution.
+
+-   **`list` command (aliased as `ls`):**
+    -   **Goal:** Displays a list of project dependencies, showing their configured sources from `project.toml`, their local paths, and their locked versions or hashes from `almd-lock.toml`.
+    -   **Implementation:** To be implemented as a `urfave/cli` command (e.g., in `internal/cli/list/list.go`).
+    -   **Functionality:**
+        -   **Manifest & Lockfile Loading:** Loads `project.toml` (via `internal/core/config`) and `almd-lock.toml` (via `internal/core/lockfile`).
+        -   **Dependency Traversal:** Iterates through the dependencies defined in the `[dependencies]` table of `project.toml`. For each dependency:
+            -   Retrieves its logical name, the configured `source` identifier, and its relative `path` from `project.toml`.
+            -   Attempts to retrieve its corresponding entry from `almd-lock.toml` to get the locked raw `source` URL and the integrity `hash`.
+        -   **Output Formatting:** Displays the collected information for each dependency. The default output format typically includes:
+            -   Logical dependency name.
+            -   Declared `source` identifier from `project.toml`.
+            -   Locked `hash` (e.g., `commit:<hash>` or `sha256:<hash>`) from `almd-lock.toml`. If not locked, this might be indicated (e.g., "not locked").
+            -   Relative `path` in the project where the file is (or should be) located.
+        -   **Extended Information (e.g., with a `--long` or `-l` flag):**
+            -   The full locked raw `source` URL from `almd-lock.toml`.
+            -   Status indication, e.g., "INSTALLED" (if local file at `path` exists and optionally matches hash), "MISSING" (if local file at `path` does not exist), "NOT_LOCKED".
+            -   (Future/Advanced) Potentially indicate if a newer version is available if the `project.toml` source is a "floating" reference (like a branch name) and it resolves to a newer commit than what's in the lockfile. This would require resolving the `project.toml` source during the list operation.
+        -   **No Dependencies:** If `project.toml` contains no dependencies, an appropriate message (e.g., "No dependencies found in project.toml.") is printed.
+    -   **Arguments & Flags (`urfave/cli`):**
+        -   `--long`, `-l`: Optional flag (`cli.BoolFlag`) to display more detailed information for each listed dependency.
+        -   `--json`: Optional flag (`cli.BoolFlag`) to output the dependency list in JSON format, suitable for machine parsing.
+        -   `--porcelain`: Optional flag (`cli.BoolFlag`) for a simple, scriptable output format (e.g., `name@version_hash path`).
+
+
 ## 3. Almandine Tool Project Structure (Go Implementation)
 
 Standard Go project layout combined with Almandine specifics:

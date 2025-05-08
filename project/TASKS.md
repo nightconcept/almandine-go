@@ -313,3 +313,206 @@
         -   [x] Setup: Temp dir with empty `project.toml` and/or `almd-lock.toml`.
         -   [x] Execute: `almd remove <dependency_name>`.
         -   [ ] Verify: Command returns an error indicating dependency not found, and files remain empty or unchanged.
+
+## Milestone 6: `update` Command Implementation
+
+**Goal:** Implement the `almd update` command to refresh dependencies based on `project.toml` and update `almd-lock.toml`.
+
+-   [ ] **Task 6.1: `urfave/cli` Command Setup for `update`**
+    -   [ ] Define the `update` command structure (`cli.Command`) in `internal/cli/update/update.go`.
+    -   [ ] Add the command to the `urfave/cli` App in `main.go`.
+    -   [ ] Define optional `[dependency_names...]` argument.
+    -   [ ] Define flags: `--force, -f` (bool), `--verbose` (bool).
+    -   [ ] Manual Verification: Run `almd update --help` and confirm the command, argument, and flags are listed correctly.
+
+-   [ ] **Task 6.2: Argument Parsing and Initial Loading**
+    -   [ ] In the `update` command's `Action`, parse optional dependency names. If none, target all.
+    -   [ ] Load `project.toml` (using `internal/core/config`). Handle errors if not found.
+    -   [ ] Load `almd-lock.toml` (using `internal/core/lockfile`). Handle if not found (treat as all dependencies needing update/addition to lockfile).
+    -   [ ] Manual Verification: Test with and without dependency names. Check behavior with missing manifest/lockfile.
+
+-   [ ] **Task 6.3: Dependency Iteration and Configuration Retrieval**
+    -   [ ] Iterate through targeted dependencies (all from `project.toml` or specified names).
+    -   [ ] For each dependency:
+        -   [ ] Retrieve its configuration (canonical `source` identifier, `path`) from `project.toml`.
+        -   [ ] If a specified dependency name is not found in `project.toml`, skip with a warning.
+    -   [ ] Manual Verification: Code review logic for iteration and config fetching. Test with a mix of valid and invalid specified dependency names.
+
+-   [ ] **Task 6.4: Target Version Resolution and Lockfile State Retrieval**
+    -   [ ] For each dependency:
+        -   [ ] Resolve its `source` from `project.toml` to a concrete downloadable raw URL and a definitive commit hash/version identifier (using `internal/source`). This involves fetching latest commit for branches/tags if necessary.
+        -   [ ] Retrieve its current locked state (raw `source` URL, `hash`) from `almd-lock.toml`, if an entry exists.
+    -   [ ] Manual Verification: Test source resolution for branches, tags, and specific commits. Check retrieval from lockfile.
+
+-   [ ] **Task 6.5: Comparison Logic and Update Decision**
+    -   [ ] For each dependency, determine if an update is required based on PRD logic:
+        -   [ ] Resolved target commit hash (from `project.toml` source) differs from locked commit hash.
+        -   [ ] Dependency in `project.toml` but missing from `almd-lock.toml`.
+        -   [ ] Local file at `path` is missing.
+        -   [ ] `--force` flag is used.
+    -   [ ] If none of the above, the dependency is considered up-to-date.
+    -   [ ] Manual Verification: Code review decision logic against PRD.
+
+-   [ ] **Task 6.6: Perform Update (If Required)**
+    -   [ ] For each dependency needing an update:
+        -   [ ] Download the file from the resolved target raw URL (using `internal/downloader`).
+        -   [ ] Calculate integrity hash (commit hash preferred, else SHA256 via `internal/hasher`).
+        -   [ ] Save the downloaded file to its `path` (from `project.toml`), creating parent directories if needed.
+        -   [ ] Update `almd-lock.toml`: store the exact raw download URL used, `path`, and new integrity `hash`. The `source` in `project.toml` remains (e.g., can still be a branch).
+    -   [ ] Manual Verification: Test a scenario where an update is performed. Check downloaded file content, path, and `almd-lock.toml` changes.
+
+-   [ ] **Task 6.7: Output and Error Handling**
+    -   [ ] Provide clear feedback: which dependencies checked, updated, already up-to-date.
+    -   [ ] Report errors clearly (e.g., download failure, source resolution failure, file write failure) via `urfave/cli`.
+    -   [ ] Manual Verification: Observe output for various scenarios (updates, no updates, errors).
+
+## Milestone 7: `update` Command Testing
+
+**Goal:** Implement unit tests for the `update` command.
+
+-   [ ] **Task 7.1: Test File Structure and Helpers for `update`**
+    -   [ ] Create test file: `internal/cli/update/update_test.go`.
+    -   [ ] Develop test helpers:
+        -   `setupUpdateTestEnvironment(...)`: Creates temp dir, `project.toml`, `almd-lock.toml`, mock dependency files.
+        -   `runUpdateCommand(...)`: Executes the `update` command's action with specified args and context.
+        -   Mock HTTP server setup (similar to `add` command tests) for controlling download responses and simulating remote changes.
+
+-   [ ] **Task 7.2: Implement `update` Command Unit Test Cases**
+    -   [ ] **Sub-Task 7.2.1: Test `almd update` - All dependencies, one needs update (commit hash change)**
+        -   [ ] Setup: `project.toml` specifies `depA@main`. `almd-lock.toml` has `depA` at `commit1`. Mock server resolves `main` for `depA` to `commit2` and serves new content.
+        -   [ ] Execute: `almd update`.
+        -   [ ] Verify: `depA` file updated, `almd-lock.toml` updated for `depA` to `commit2`. Other up-to-date deps untouched.
+    -   [ ] **Sub-Task 7.2.2: Test `almd update <dep_name>` - Specific dependency update**
+        -   [ ] Setup: Similar to 7.2.1, but also `depB` needs update.
+        -   [ ] Execute: `almd update depA`.
+        -   [ ] Verify: Only `depA` is updated. `depB` remains as per old lockfile.
+    -   [ ] **Sub-Task 7.2.3: Test `almd update` - All dependencies up-to-date**
+        -   [ ] Setup: `project.toml` sources resolve to same commits as in `almd-lock.toml`. Local files exist.
+        -   [ ] Execute: `almd update`.
+        -   [ ] Verify: No files downloaded, no changes to `almd-lock.toml`. Appropriate "up-to-date" messages.
+    -   [ ] **Sub-Task 7.2.4: Test `almd update` - Dependency in `project.toml` but missing from `almd-lock.toml`**
+        -   [ ] Setup: `depNew` in `project.toml`, but no entry in `almd-lock.toml`.
+        -   [ ] Execute: `almd update`.
+        -   [ ] Verify: `depNew` is downloaded, file saved, and entry added to `almd-lock.toml`.
+    -   [ ] **Sub-Task 7.2.5: Test `almd update` - Local dependency file missing**
+        -   [ ] Setup: `depA` in `project.toml` and `almd-lock.toml`, but its local file is deleted.
+        -   [ ] Execute: `almd update depA`.
+        -   [ ] Verify: `depA` is re-downloaded based on `almd-lock.toml`'s pinned version (or `project.toml` if it dictates a newer one). `almd-lock.toml` reflects the version downloaded.
+    -   [ ] **Sub-Task 7.2.6: Test `almd update --force` - Force update on an up-to-date dependency**
+        -   [ ] Setup: `depA` is up-to-date.
+        -   [ ] Execute: `almd update --force depA`.
+        -   [ ] Verify: `depA` is re-downloaded and `almd-lock.toml` entry is refreshed, even if commit hash was the same.
+    -   [ ] **Sub-Task 7.2.7: Test `almd update <non_existent_dep>` - Non-existent dependency specified**
+        -   [ ] Setup: `project.toml` does not contain `non_existent_dep`.
+        -   [ ] Execute: `almd update non_existent_dep`.
+        -   [ ] Verify: Warning message printed, no other actions taken for this dep. Other valid deps (if `update` was called without args but one was invalid) should process normally.
+    -   [ ] **Sub-Task 7.2.8: Test `almd update` - Error during download**
+        -   [ ] Setup: Mock server returns HTTP error for a dependency that needs update.
+        -   [ ] Execute: `almd update`.
+        -   [ ] Verify: Command reports error for that dependency. `almd-lock.toml` and local file for that dep remain unchanged or reflect pre-update state.
+    -   [ ] **Sub-Task 7.2.9: Test `almd update` - Error during source resolution (e.g., branch not found)**
+        -   [ ] Setup: `project.toml` points to `depA@nonexistent_branch`. Mock `internal/source` to simulate resolution failure.
+        -   [ ] Execute: `almd update depA`.
+        -   [ ] Verify: Command reports error for `depA`. No download attempt.
+    -   [ ] **Sub-Task 7.2.10: Test `almd update` - `project.toml` not found**
+        -   [ ] Setup: Run `update` in a temp dir without `project.toml`.
+        -   [ ] Execute: `almd update`.
+        -   [ ] Verify: Command returns an appropriate error.
+
+## Milestone 8: `list` Command Implementation
+
+**Goal:** Implement the `almd list` (and `ls`) command to display project dependencies.
+
+-   [ ] **Task 8.1: `urfave/cli` Command Setup for `list`**
+    -   [ ] Define the `list` command structure (`cli.Command`) in `internal/cli/list/list.go`.
+    -   [ ] Add `ls` as an alias for the `list` command.
+    -   [ ] Add the command to the `urfave/cli` App in `main.go`.
+    -   [ ] Define flags: `--long, -l` (bool), `--json` (bool), `--porcelain` (bool).
+    -   [ ] Manual Verification: Run `almd list --help` and `almd ls --help`. Confirm command, alias, and flags are listed.
+
+-   [ ] **Task 8.2: Manifest and Lockfile Loading for `list`**
+    -   [ ] In the `list` command's `Action`, load `project.toml` (using `internal/core/config`). Handle if not found (print "No dependencies..." or error).
+    -   [ ] Load `almd-lock.toml` (using `internal/core/lockfile`). Handle if not found (dependencies will show as "not locked").
+    -   [ ] Manual Verification: Test with missing manifest/lockfile.
+
+-   [ ] **Task 8.3: Dependency Traversal and Information Gathering**
+    -   [ ] Iterate through dependencies in `project.toml`'s `[dependencies]` table.
+    -   [ ] For each dependency, retrieve:
+        -   Logical name.
+        -   Configured `source` from `project.toml`.
+        -   Relative `path` from `project.toml`.
+        -   Locked raw `source` URL and `hash` from `almd-lock.toml` (if present).
+        -   Local file existence status at `path`.
+    -   [ ] Manual Verification: Code review data gathering logic.
+
+-   [ ] **Task 8.4: Default Output Formatting**
+    -   [ ] Implement the default output format as per PRD:
+        -   Logical dependency name.
+        -   Declared `source` from `project.toml`.
+        -   Locked `hash` from `almd-lock.toml` (or "not locked").
+        -   Relative `path`.
+    -   [ ] Manual Verification: Run `almd list` with a sample project and check output.
+
+-   [ ] **Task 8.5: Implement `--long` / `-l` Flag for Extended Output**
+    -   [ ] If `--long` is specified, include additional information as per PRD:
+        -   Full locked raw `source` URL from `almd-lock.toml`.
+        -   Status indication (e.g., "INSTALLED", "MISSING", "NOT_LOCKED").
+        -   (Future/Advanced from PRD - consider if in scope for this task: "Potentially indicate if a newer version is available...")
+    -   [ ] Manual Verification: Run `almd list -l` and check for extended details.
+
+-   [ ] **Task 8.6: Implement `--json` Flag for JSON Output**
+    -   [ ] If `--json` is specified, output the dependency list in a structured JSON format.
+    -   [ ] Define the JSON structure (e.g., an array of objects, each representing a dependency with all relevant fields).
+    -   [ ] Manual Verification: Run `almd list --json`, validate output with a JSON parser/linter.
+
+-   [ ] **Task 8.7: Implement `--porcelain` Flag for Scriptable Output**
+    -   [ ] If `--porcelain` is specified, output in a simple, machine-readable format (e.g., `name@version_hash path`).
+    -   [ ] Manual Verification: Run `almd list --porcelain` and check the output format.
+
+-   [ ] **Task 8.8: Handling Projects with No Dependencies**
+    -   [ ] If `project.toml` has no `[dependencies]` table or it's empty, print an appropriate message (e.g., "No dependencies found in project.toml."). This should work for all output formats (default, long, json, porcelain - e.g. empty array for json).
+    -   [ ] Manual Verification: Test with an empty `project.toml` or one without dependencies.
+
+## Milestone 9: `list` Command Testing
+
+**Goal:** Implement unit tests for the `list` command.
+
+-   [ ] **Task 9.1: Test File Structure and Helpers for `list`**
+    -   [ ] Create test file: `internal/cli/list/list_test.go`.
+    -   [ ] Develop test helpers:
+        -   `setupListTestEnvironment(...)`: Creates temp dir, `project.toml`, `almd-lock.toml`, and optionally dummy dependency files.
+        -   `runListCommand(...)`: Executes the `list` command's action, capturing its stdout.
+
+-   [ ] **Task 9.2: Implement `list` Command Unit Test Cases**
+    -   [ ] **Sub-Task 9.2.1: Test `almd list` - No dependencies**
+        -   [ ] Setup: Empty `project.toml` or no `[dependencies]` table.
+        -   [ ] Execute: `almd list`.
+        -   [ ] Verify: Output indicates no dependencies. For `--json`, verify empty array or appropriate null structure.
+    -   [ ] **Sub-Task 9.2.2: Test `almd list` - Single dependency (fully installed and locked)**
+        -   [ ] Setup: `project.toml` with one dep, `almd-lock.toml` with corresponding entry, local file exists.
+        -   [ ] Execute: `almd list`.
+        -   [ ] Verify: Correct default output for the dependency.
+    -   [ ] **Sub-Task 9.2.3: Test `almd list` - Multiple dependencies with varied states**
+        -   [ ] Setup: Mix of deps: one fully installed, one in manifest but not lockfile, one in manifest & lockfile but file missing.
+        -   [ ] Execute: `almd list`.
+        -   [ ] Verify: Correct default output for each, reflecting their state.
+    -   [ ] **Sub-Task 9.2.4: Test `almd list -l` (or `--long`) - Verify extended output**
+        -   [ ] Setup: Similar to 9.2.3.
+        -   [ ] Execute: `almd list -l`.
+        -   [ ] Verify: Output includes all extended fields as per PRD (full locked source, status).
+    -   [ ] **Sub-Task 9.2.5: Test `almd list --json` - Verify JSON output**
+        -   [ ] Setup: A few dependencies with different states.
+        -   [ ] Execute: `almd list --json`.
+        -   [ ] Verify: Output is valid JSON and accurately represents the dependencies and their states.
+    -   [ ] **Sub-Task 9.2.6: Test `almd list --porcelain` - Verify porcelain output**
+        -   [ ] Setup: A few dependencies.
+        -   [ ] Execute: `almd list --porcelain`.
+        -   [ ] Verify: Output matches the defined porcelain format.
+    -   [ ] **Sub-Task 9.2.7: Test `almd ls` (alias) - Verify alias works**
+        -   [ ] Setup: Basic project with one dependency.
+        -   [ ] Execute: `almd ls`.
+        -   [ ] Verify: Output is identical to `almd list`.
+    -   [ ] **Sub-Task 9.2.8: Test `almd list` - `project.toml` not found**
+        -   [ ] Setup: Run `list` in a temp dir without `project.toml`.
+        -   [ ] Execute: `almd list`.
+        -   [ ] Verify: Command returns an appropriate error or "no dependencies" message as per PRD.
