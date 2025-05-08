@@ -9,6 +9,7 @@ import (
 )
 
 const ProjectTomlName = "project.toml"
+const LockfileName = "almd-lock.toml"
 
 // LoadProjectToml reads the project.toml file from the given filePath and unmarshals it.
 func LoadProjectToml(filePath string) (*project.Project, error) {
