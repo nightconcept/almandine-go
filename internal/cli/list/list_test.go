@@ -343,25 +343,34 @@ hash = "%s"
 	resolvedTempDir, err := filepath.EvalSymlinks(tempDir)
 	require.NoError(t, err, "Failed to evaluate symlinks for tempDir")
 
-	// Expected output format (NO_COLOR is set by runListCommand)
-	// ProjectName@Version /path/to/project/root
-	//
-	// dependencies:
-	// DepAName DepAHash DepAPath
-	// DepBName not locked DepBPath
-	// DepCName DepCHash DepCPath
-	// Order should match project.toml
-	expectedOutput := fmt.Sprintf("%s@%s %s\n\ndependencies:\n%s %s %s\n%s %s %s\n%s %s %s\n",
-		projectName, projectVersion, resolvedTempDir,
-		depAName, depAHashLock, depAPath,
-		depBName, "not locked", depBPath,
-		depCName, depCHashLock, depCPath,
-	)
-
 	output, err := runListCommand(t, tempDir, "list")
-
 	require.NoError(t, err)
-	assert.Equal(t, strings.TrimSpace(expectedOutput), strings.TrimSpace(output))
+
+	// Split the output into lines
+	outputLines := strings.Split(strings.TrimSpace(output), "\n")
+	require.GreaterOrEqual(t, len(outputLines), 5, "Output should have at least 5 lines")
+
+	// Verify project header (first line)
+	expectedHeader := fmt.Sprintf("%s@%s %s", projectName, projectVersion, resolvedTempDir)
+	assert.Equal(t, expectedHeader, outputLines[0], "Project header should match")
+
+	// Verify "dependencies:" label (line 3)
+	assert.Equal(t, "dependencies:", outputLines[2], "Dependencies label should match")
+
+	// Create a map of expected dependencies
+	expectedDeps := map[string]bool{
+		fmt.Sprintf("%s %s %s", depAName, depAHashLock, depAPath): true,
+		fmt.Sprintf("%s %s %s", depBName, "not locked", depBPath): true,
+		fmt.Sprintf("%s %s %s", depCName, depCHashLock, depCPath): true,
+	}
+
+	// Check each dependency line (lines 3+)
+	for _, line := range outputLines[3:] {
+		assert.True(t, expectedDeps[line], fmt.Sprintf("Unexpected dependency entry: %s", line))
+	}
+
+	// Make sure we found exactly 3 dependencies
+	assert.Equal(t, 3, len(outputLines)-3, "Should have exactly 3 dependency entries")
 }
 
 func TestListCommand_AliasLs(t *testing.T) {

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,6 +14,9 @@ import (
 
 	"github.com/nightconcept/almandine-go/internal/core/source"
 )
+
+// Global mutex to synchronize all tests that modify global state in source package
+var sourceTestMutex sync.Mutex
 
 // setupSourceTest sets up a mock server and configures the source package for testing.
 // It returns the mock server's URL and a cleanup function.
@@ -40,7 +44,9 @@ func setupSourceTest(t *testing.T, handler http.HandlerFunc) (string, func()) {
 }
 
 func TestParseSourceURL_GitHubShorthand(t *testing.T) {
-	// t.Parallel() // Removed due to global state modification by some sub-tests
+	sourceTestMutex.Lock()
+	defer sourceTestMutex.Unlock()
+
 	tests := []struct {
 		name          string
 		url           string
@@ -121,7 +127,6 @@ func TestParseSourceURL_GitHubShorthand(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // capture range variable
 		t.Run(tt.name, func(t *testing.T) {
-			// t.Parallel() // Removed: sub-tests here need to be serial due to differing global state expectations/setups
 			var mockURL string
 			var cleanup func()
 
@@ -152,7 +157,9 @@ func TestParseSourceURL_GitHubShorthand(t *testing.T) {
 }
 
 func TestParseSourceURL_FullGitHubURLs(t *testing.T) {
-	// t.Parallel() // Removed to prevent state leakage of testModeBypassHostValidation
+	sourceTestMutex.Lock()
+	defer sourceTestMutex.Unlock()
+
 	tests := []struct {
 		name        string
 		url         string
@@ -245,7 +252,6 @@ func TestParseSourceURL_FullGitHubURLs(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // capture range variable
 		t.Run(tt.name, func(t *testing.T) {
-			// t.Parallel() // Potentially problematic with global state if other tests modify it
 			got, err := source.ParseSourceURL(tt.url)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -261,7 +267,8 @@ func TestParseSourceURL_FullGitHubURLs(t *testing.T) {
 }
 
 func TestParseSourceURL_WithTestModeBypass_FullMockURL(t *testing.T) {
-	// t.Parallel() // Removed due to setupSourceTest modifying global state for all sub-tests
+	sourceTestMutex.Lock()
+	defer sourceTestMutex.Unlock()
 
 	mockServerURL, cleanup := setupSourceTest(t, func(w http.ResponseWriter, r *http.Request) {
 		// This handler is not strictly needed for ParseSourceURL when testModeBypassHostValidation is true,
@@ -322,7 +329,6 @@ func TestParseSourceURL_WithTestModeBypass_FullMockURL(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // capture range variable
 		t.Run(tt.name, func(t *testing.T) {
-			// t.Parallel() // Removed as sub-tests depend on global state set by parent
 			got, err := source.ParseSourceURL(tt.url)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -338,7 +344,9 @@ func TestParseSourceURL_WithTestModeBypass_FullMockURL(t *testing.T) {
 }
 
 func TestParseSourceURL_NonGitHubURLs(t *testing.T) {
-	// t.Parallel() // Removed to prevent state leakage of testModeBypassHostValidation
+	sourceTestMutex.Lock()
+	defer sourceTestMutex.Unlock()
+
 	tests := []struct {
 		name        string
 		url         string
@@ -368,7 +376,6 @@ func TestParseSourceURL_NonGitHubURLs(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // capture range variable
 		t.Run(tt.name, func(t *testing.T) {
-			// t.Parallel() // Potentially problematic with global state if other tests modify it
 			_, err := source.ParseSourceURL(tt.url)
 			require.Error(t, err)
 			if tt.errContains != "" {

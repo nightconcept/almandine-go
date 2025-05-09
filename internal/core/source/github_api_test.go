@@ -19,7 +19,6 @@ import (
 var githubAPITestMutex sync.Mutex // Mutex to serialize tests modifying global source state
 
 func TestGetLatestCommitSHAForFile_Success(t *testing.T) {
-	// t.Parallel() // Removed: This test modifies global state via setupSourceTest
 	githubAPITestMutex.Lock()
 	defer githubAPITestMutex.Unlock()
 
@@ -48,7 +47,6 @@ func TestGetLatestCommitSHAForFile_Success(t *testing.T) {
 }
 
 func TestGetLatestCommitSHAForFile_EmptyResponse(t *testing.T) {
-	// t.Parallel() // Removed: This test modifies global state via setupSourceTest
 	githubAPITestMutex.Lock()
 	defer githubAPITestMutex.Unlock()
 
@@ -69,7 +67,6 @@ func TestGetLatestCommitSHAForFile_EmptyResponse(t *testing.T) {
 }
 
 func TestGetLatestCommitSHAForFile_GitHubAPIError(t *testing.T) {
-	// t.Parallel() // Removed: This test modifies global state via setupSourceTest
 	githubAPITestMutex.Lock()
 	defer githubAPITestMutex.Unlock()
 
@@ -86,7 +83,6 @@ func TestGetLatestCommitSHAForFile_GitHubAPIError(t *testing.T) {
 }
 
 func TestGetLatestCommitSHAForFile_MalformedJSONResponse(t *testing.T) {
-	// t.Parallel() // Removed: This test modifies global state via setupSourceTest
 	githubAPITestMutex.Lock()
 	defer githubAPITestMutex.Unlock()
 
@@ -103,7 +99,6 @@ func TestGetLatestCommitSHAForFile_MalformedJSONResponse(t *testing.T) {
 }
 
 func TestGetLatestCommitSHAForFile_NetworkError(t *testing.T) {
-	// t.Parallel() // This test manually manipulates global state and server lifecycle.
 	githubAPITestMutex.Lock()
 	defer githubAPITestMutex.Unlock()
 
@@ -162,7 +157,6 @@ func MockGitHubCommit(sha string, date time.Time) source.GitHubCommitInfo {
 }
 
 func TestGetLatestCommitSHAForFile_UsesCorrectURLParameters(t *testing.T) {
-	// t.Parallel() // Removed: This test modifies global state via setupSourceTest
 	githubAPITestMutex.Lock()
 	defer githubAPITestMutex.Unlock()
 

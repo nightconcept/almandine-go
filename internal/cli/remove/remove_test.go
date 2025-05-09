@@ -276,13 +276,8 @@ func TestRemoveCommand_ProjectTomlNotFound(t *testing.T) {
 
 	assert.Equal(t, 1, exitErr.ExitCode(), "Expected exit code 1")
 	// Error message should now come from config.LoadProjectToml when project.toml is not found.
-	// It will include the full path to project.toml.
-	// We need to construct the expected full path for comparison.
-	// expectedPath := filepath.Join(tempDir, config.ProjectTomlName) // No longer needed directly for constructing one single string
-	// The actual error from os.ReadFile includes "open <path>: The system cannot find the file specified."
-	// or similar OS-dependent message. We check if the error message *starts* with our expected prefix.
 	assert.Contains(t, exitErr.Error(), "Error: Failed to load project.toml:", "Error message prefix mismatch")
-	assert.Contains(t, exitErr.Error(), "no such file or directory", "Error message should indicate file not found")
+	// Don't check for specific OS error message text which varies between platforms
 }
 
 func TestRemoveCommand_ManifestOnlyDependency(t *testing.T) {
