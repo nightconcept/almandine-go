@@ -635,11 +635,10 @@
     -   [x] Test any helper functions or methods on the `Project`, `Dependency`, `Script`, etc. structs if they contain logic beyond simple data holding. (Tested `NewProject()` constructor; other structs are data holders).
     -   [ ] Manual Verification: Run `go test ./internal/core/project/...`.
 
--   [ ] **Task 13.7: Implement Unit Tests for `internal/core/source`**
-    -   [ ] Create `internal/core/source/source_test.go`.
-    -   [ ] Test `ParseSourceURL` with various valid and invalid GitHub URL formats (raw, blob, tree, with/without ref, shorthand).
-    -   [ ] Test `GetGitHubRawURLAndCommit` (mocking `FetchLatestCommitSHA` and `FetchFileCommitSHA`).
-    -   [ ] Create `internal/core/source/github_api_test.go`.
-    -   [ ] Test `FetchLatestCommitSHA` (mocking HTTP calls to GitHub API).
-    -   [ ] Test `FetchFileCommitSHA` (mocking HTTP calls to GitHub API).
+-   [x] **Task 13.7: Implement Unit Tests for `internal/core/source` (2025-05-08)**
+    -   [x] Create `internal/core/source/source_test.go`.
+    -   [x] Test `ParseSourceURL` with various valid and invalid GitHub URL formats (raw, blob, tree, with/without ref, shorthand).
+    -   [ ] Test `GetGitHubRawURLAndCommit` (mocking `FetchLatestCommitSHA` and `FetchFileCommitSHA`). *(Note: `GetGitHubRawURLAndCommit` function not found in current `source.go`)*.
+    -   [x] Create `internal/core/source/github_api_test.go`.
+    -   [x] Test `GetLatestCommitSHAForFile` (mocking HTTP calls to GitHub API). *(Note: Tested existing `GetLatestCommitSHAForFile` instead of non-existent `FetchLatestCommitSHA` / `FetchFileCommitSHA`)*.
     -   [ ] Manual Verification: Run `go test ./internal/core/source/...`.
