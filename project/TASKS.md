@@ -594,3 +594,52 @@
         -   [ ] Mocks the `github.com/creativeprojects/go-selfupdate` library's interactions (e.g., API calls, download).
         -   [ ] Verifies the command logic (flag parsing, conditional execution based on mocked updater responses).
         -   [ ] This would not test the actual binary replacement but would cover the command's flow.
+
+---
+
+## Milestone 13: Core Logic Unit Testing (`internal/core`)
+
+**Goal:** Ensure comprehensive unit test coverage for all packages within `internal/core`.
+
+-   [x] **Task 13.1: Define Testing Strategy for `internal/core`**
+    -   [x] Framework: Standard Go `testing` package with `testify` for assertions.
+    -   [x] Scope: Unit tests for public functions/methods in each `internal/core` package.
+    -   [x] Mocks: Use mocks for external dependencies (e.g., network, filesystem) where appropriate.
+    -   [x] Structure: Test files alongside source files (e.g., `config_test.go` for `config.go` within `internal/core/config/`).
+    -   [x] Manual Verification: Review strategy for completeness.
+
+-   [x] **Task 13.2: Implement Unit Tests for `internal/core/config`**
+    -   [x] Create `internal/core/config/config_test.go`.
+    -   [x] Test `LoadProjectToml` (valid, not found, invalid format).
+    -   [x] Test `SaveProjectToml` (writing, overwriting).
+    -   [x] Manual Verification: Run `go test ./internal/core/config/...`.
+
+-   [x] **Task 13.3: Implement Unit Tests for `internal/core/downloader` (2025-05-08)**
+    -   [x] Create `internal/core/downloader/downloader_test.go`.
+    -   [x] Test `DownloadFile` (success, HTTP errors, network issues) using `httptest`.
+    -   [ ] Manual Verification: Run `go test ./internal/core/downloader/...`.
+
+-   [x] **Task 13.4: Implement Unit Tests for `internal/core/hasher` (2025-05-08)**
+    -   [x] Create `internal/core/hasher/hasher_test.go`.
+    -   [x] Test `CalculateSHA256` with known content.
+    -   [ ] Manual Verification: Run `go test ./internal/core/hasher/...`.
+
+-   [x] **Task 13.5: Implement Unit Tests for `internal/core/lockfile` (2025-05-08)**
+    -   [x] Create `internal/core/lockfile/lockfile_test.go`.
+    -   [x] Test `LoadLockfile` (valid, not found, invalid format).
+    -   [x] Test `SaveLockfile` (writing, overwriting).
+    -   [ ] Manual Verification: Run `go test ./internal/core/lockfile/...`.
+
+-   [x] **Task 13.6: Implement Unit Tests for `internal/core/project` (2025-05-08)**
+    -   [x] Create `internal/core/project/project_test.go`.
+    -   [x] Test any helper functions or methods on the `Project`, `Dependency`, `Script`, etc. structs if they contain logic beyond simple data holding. (Tested `NewProject()` constructor; other structs are data holders).
+    -   [ ] Manual Verification: Run `go test ./internal/core/project/...`.
+
+-   [ ] **Task 13.7: Implement Unit Tests for `internal/core/source`**
+    -   [ ] Create `internal/core/source/source_test.go`.
+    -   [ ] Test `ParseSourceURL` with various valid and invalid GitHub URL formats (raw, blob, tree, with/without ref, shorthand).
+    -   [ ] Test `GetGitHubRawURLAndCommit` (mocking `FetchLatestCommitSHA` and `FetchFileCommitSHA`).
+    -   [ ] Create `internal/core/source/github_api_test.go`.
+    -   [ ] Test `FetchLatestCommitSHA` (mocking HTTP calls to GitHub API).
+    -   [ ] Test `FetchFileCommitSHA` (mocking HTTP calls to GitHub API).
+    -   [ ] Manual Verification: Run `go test ./internal/core/source/...`.
