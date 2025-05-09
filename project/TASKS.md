@@ -642,3 +642,19 @@
     -   [x] Create `internal/core/source/github_api_test.go`.
     -   [x] Test `GetLatestCommitSHAForFile` (mocking HTTP calls to GitHub API). *(Note: Tested existing `GetLatestCommitSHAForFile` instead of non-existent `FetchLatestCommitSHA` / `FetchFileCommitSHA`)*.
     -   [ ] Manual Verification: Run `go test ./internal/core/source/...`.
+
+---
+
+## Milestone 14: Test Fixes (2025-05-08)
+
+**Goal:** Address and fix failing tests reported by `go test -v ./... -race -coverprofile=coverage.out -covermode=atomic`.
+
+-   [x] **Task 14.1: Fix `TestRemoveCommand_ProjectTomlNotFound` in `internal/cli/remove/remove_test.go` (2025-05-08)**
+    -   [x] Investigated assertion failure: `"Error: Failed to load project.toml: open project.toml: no such file or directory" does not contain "cannot find the file specified"`.
+    -   [x] Updated assertion to correctly match the expected error message ("no such file or directory").
+-   [x] **Task 14.2: Fix Data Races in `internal/core/source` tests (2025-05-08)**
+    -   [x] Investigated data races reported for `githubAPIURL` and `testModeBypassHostValidation` in `source_test.go`, `github_api_test.go`, and `source.go`.
+    -   [x] Implemented synchronization using exported mutexes (`GithubAPIBaseURLMutex`, `TestModeBypassHostValidationMutex`) in the `source` package to protect shared global variables accessed by parallel tests. Updated `github_api.go`, `source.go`, and `source_test.go` to use these mutexes.
+-   [x] **Task 14.3: Fix Path Mismatch Failures in `internal/cli/list/list_test.go` (2025-05-08)**
+    -   [x] Investigated failures in `TestListCommand_SingleDependencyFullyInstalledAndLocked`, `TestListCommand_MultipleDependenciesVariedStates`, and `TestListCommand_AliasLs` due to `/private/var` vs `/var` path differences on macOS.
+    -   [x] Updated tests to use `filepath.EvalSymlinks` on the temporary directory path before constructing expected output strings, ensuring canonical paths are compared.

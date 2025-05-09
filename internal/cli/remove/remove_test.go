@@ -282,7 +282,7 @@ func TestRemoveCommand_ProjectTomlNotFound(t *testing.T) {
 	// The actual error from os.ReadFile includes "open <path>: The system cannot find the file specified."
 	// or similar OS-dependent message. We check if the error message *starts* with our expected prefix.
 	assert.Contains(t, exitErr.Error(), "Error: Failed to load project.toml:", "Error message prefix mismatch")
-	assert.Contains(t, exitErr.Error(), "cannot find the file specified", "Error message should indicate file not found")
+	assert.Contains(t, exitErr.Error(), "no such file or directory", "Error message should indicate file not found")
 }
 
 func TestRemoveCommand_ManifestOnlyDependency(t *testing.T) {

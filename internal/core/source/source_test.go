@@ -19,14 +19,22 @@ import (
 func setupSourceTest(t *testing.T, handler http.HandlerFunc) (string, func()) {
 	t.Helper()
 	server := httptest.NewServer(handler)
+	// Lock before accessing/modifying global state
+	source.GithubAPIBaseURLMutex.Lock()
 	originalAPIBaseURL := source.GithubAPIBaseURL
 	source.GithubAPIBaseURL = server.URL
-	source.SetTestModeBypassHostValidation(true)
+	source.GithubAPIBaseURLMutex.Unlock()
+
+	source.SetTestModeBypassHostValidation(true) // This function handles its own locking
 
 	cleanup := func() {
 		server.Close()
+		// Lock before restoring global state
+		source.GithubAPIBaseURLMutex.Lock()
 		source.GithubAPIBaseURL = originalAPIBaseURL
-		source.SetTestModeBypassHostValidation(false)
+		source.GithubAPIBaseURLMutex.Unlock()
+
+		source.SetTestModeBypassHostValidation(false) // This function handles its own locking
 	}
 	return server.URL, cleanup
 }

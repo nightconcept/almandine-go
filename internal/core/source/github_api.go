@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync" // Added import for sync
 	"time"
 )
 
 // GithubAPIBaseURL allows overriding for tests. It is an exported variable.
 var GithubAPIBaseURL = "https://api.github.com"
+var GithubAPIBaseURLMutex sync.Mutex // Mutex for GithubAPIBaseURL (Exported)
 
 // GitHubCommitInfo minimal structure to parse the commit SHA.
 type GitHubCommitInfo struct {
@@ -31,7 +33,10 @@ func GetLatestCommitSHAForFile(owner, repo, pathInRepo, ref string) (string, err
 	// Construct the API URL
 	// See: https://docs.github.com/en/rest/commits/commits#list-commits
 	// We ask for commits for a specific file on a specific branch/ref. The first result is the latest.
-	apiURL := fmt.Sprintf("%s/repos/%s/%s/commits?path=%s&sha=%s&per_page=1", GithubAPIBaseURL, owner, repo, pathInRepo, ref)
+	GithubAPIBaseURLMutex.Lock()
+	currentGithubAPIBaseURL := GithubAPIBaseURL
+	GithubAPIBaseURLMutex.Unlock()
+	apiURL := fmt.Sprintf("%s/repos/%s/%s/commits?path=%s&sha=%s&per_page=1", currentGithubAPIBaseURL, owner, repo, pathInRepo, ref)
 
 	httpClient := &http.Client{Timeout: 10 * time.Second}
 	req, err := http.NewRequest("GET", apiURL, nil)

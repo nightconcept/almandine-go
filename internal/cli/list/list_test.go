@@ -252,6 +252,8 @@ hash = "%s"
 	}
 
 	tempDir := setupListTestEnvironment(t, projectTomlContent, lockfileContent, depFiles)
+	resolvedTempDir, err := filepath.EvalSymlinks(tempDir)
+	require.NoError(t, err, "Failed to evaluate symlinks for tempDir")
 
 	// Expected output format (NO_COLOR is set by runListCommand)
 	// ProjectName@Version /path/to/project/root
@@ -259,7 +261,7 @@ hash = "%s"
 	// dependencies:
 	// DepName DepHash DepPath
 	expectedOutput := fmt.Sprintf("%s@%s %s\n\ndependencies:\n%s %s %s\n",
-		projectName, projectVersion, tempDir,
+		projectName, projectVersion, resolvedTempDir,
 		depName, depHash, depPath,
 	)
 
@@ -338,6 +340,8 @@ hash = "%s"
 	}
 
 	tempDir := setupListTestEnvironment(t, projectTomlContent, lockfileContent, depFiles)
+	resolvedTempDir, err := filepath.EvalSymlinks(tempDir)
+	require.NoError(t, err, "Failed to evaluate symlinks for tempDir")
 
 	// Expected output format (NO_COLOR is set by runListCommand)
 	// ProjectName@Version /path/to/project/root
@@ -348,7 +352,7 @@ hash = "%s"
 	// DepCName DepCHash DepCPath
 	// Order should match project.toml
 	expectedOutput := fmt.Sprintf("%s@%s %s\n\ndependencies:\n%s %s %s\n%s %s %s\n%s %s %s\n",
-		projectName, projectVersion, tempDir,
+		projectName, projectVersion, resolvedTempDir,
 		depAName, depAHashLock, depAPath,
 		depBName, "not locked", depBPath,
 		depCName, depCHashLock, depCPath,
@@ -392,9 +396,11 @@ hash = "%s"
 	}
 
 	tempDir := setupListTestEnvironment(t, projectTomlContent, lockfileContent, depFiles)
+	resolvedTempDir, err := filepath.EvalSymlinks(tempDir)
+	require.NoError(t, err, "Failed to evaluate symlinks for tempDir")
 
 	expectedOutput := fmt.Sprintf("%s@%s %s\n\ndependencies:\n%s %s %s\n",
-		projectName, projectVersion, tempDir,
+		projectName, projectVersion, resolvedTempDir,
 		depName, depHash, depPath,
 	)
 

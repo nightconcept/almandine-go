@@ -4,16 +4,20 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"sync" // Added import for sync
 )
 
 // testModeBypassHostValidation is an internal flag for testing to bypass hostname checks.
 // WARNING: This should only be set to true in test environments.
 var testModeBypassHostValidation = false
+var TestModeBypassHostValidationMutex sync.Mutex // Mutex for testModeBypassHostValidation (Exported)
 
 // SetTestModeBypassHostValidation enables or disables the hostname validation bypass for testing.
 // This function is intended to be called only from test packages.
 func SetTestModeBypassHostValidation(enable bool) {
+	TestModeBypassHostValidationMutex.Lock()
 	testModeBypassHostValidation = enable
+	TestModeBypassHostValidationMutex.Unlock()
 }
 
 // ParsedSourceInfo holds the details extracted from a source URL.
@@ -61,12 +65,19 @@ func ParseSourceURL(sourceURL string) (*ParsedSourceInfo, error) {
 		}
 
 		var rawURL string
-		if testModeBypassHostValidation {
+		TestModeBypassHostValidationMutex.Lock()
+		currentTestModeBypass := testModeBypassHostValidation
+		TestModeBypassHostValidationMutex.Unlock()
+
+		if currentTestModeBypass {
 			// In test mode, construct the RawURL using the (potentially mocked) GithubAPIBaseURL
 			// and the expected path structure for raw content.
 			// GithubAPIBaseURL in tests is mockServer.URL (e.g., http://127.0.0.1:XYZ)
 			// The path should be /<owner>/<repo>/<ref>/<path_to_file...>
-			rawURL = fmt.Sprintf("%s/%s/%s/%s/%s", GithubAPIBaseURL, owner, repo, ref, pathInRepo)
+			GithubAPIBaseURLMutex.Lock() // Lock before reading GithubAPIBaseURL
+			currentGithubAPIBaseURL := GithubAPIBaseURL
+			GithubAPIBaseURLMutex.Unlock()
+			rawURL = fmt.Sprintf("%s/%s/%s/%s/%s", currentGithubAPIBaseURL, owner, repo, ref, pathInRepo)
 		} else {
 			rawURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, ref, pathInRepo)
 		}
@@ -89,7 +100,11 @@ func ParseSourceURL(sourceURL string) (*ParsedSourceInfo, error) {
 		return nil, fmt.Errorf("failed to parse source URL '%s': %w", sourceURL, err)
 	}
 
-	if testModeBypassHostValidation {
+	TestModeBypassHostValidationMutex.Lock()
+	currentTestModeBypass := testModeBypassHostValidation
+	TestModeBypassHostValidationMutex.Unlock()
+
+	if currentTestModeBypass {
 		// In test mode, directly construct ParsedSourceInfo assuming a GitHub-like raw content path structure.
 		// Path structure expected: /<owner>/<repo>/<ref>/<path_to_file...>
 		pathParts := strings.Split(strings.Trim(u.Path, "/"), "/")
