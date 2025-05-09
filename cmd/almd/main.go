@@ -19,12 +19,15 @@ import (
 	"github.com/nightconcept/almandine-go/internal/cli/self"
 )
 
+// version is the application version, set at build time.
+var version = "dev" // Default to "dev" if not set by ldflags
+
 // The main function, where the program execution begins.
 func main() {
 	app := &cli.App{
 		Name:    "almd",
 		Usage:   "A simple project manager for single-file dependencies",
-		Version: "v0.0.1", // Placeholder version
+		Version: version,
 		Action: func(c *cli.Context) error {
 			// Default action if no command is specified
 			_ = cli.ShowAppHelp(c)

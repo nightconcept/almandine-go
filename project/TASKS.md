@@ -554,32 +554,32 @@
     -   [x] Define flags for `almd self update`: `--yes`/`-y` (bool), `--check` (bool), `--source <url>` (string), `--verbose` (bool).
     -   [x] Manual Verification: Run `almd self update --help` and confirm the command, subcommand, and flags are listed correctly.
 
--   [ ] **Task 12.2: Add Self-Update Library**
-    -   [ ] Add `github.com/creativeprojects/go-selfupdate` as a project dependency (`go get github.com/creativeprojects/go-selfupdate`).
-    -   [ ] Manual Verification: `go.mod` and `go.sum` are updated.
+-   [x] **Task 12.2: Add Self-Update Library**
+    -   [x] Add `github.com/creativeprojects/go-selfupdate` as a project dependency (`go get github.com/creativeprojects/go-selfupdate`).
+    -   [x] Manual Verification: `go.mod` and `go.sum` are updated.
 
--   [ ] **Task 12.3: Implement Version Embedding**
-    -   [ ] Ensure the application version is embedded at build time. This typically involves:
-        -   [ ] Defining a `var version string` in the `main` package (`cmd/almd/main.go`).
-        -   [ ] Setting this variable during the build using ldflags: `go build -ldflags="-X main.version=vX.Y.Z" ./cmd/almd`.
-        -   [ ] The `cli.App` `Version` field should use this variable.
-    -   [ ] Manual Verification: Build the binary with a version, run `almd --version`, and confirm the embedded version is printed.
+-   [x] **Task 12.3: Implement Version Embedding (2025-05-08)**
+    -   [x] Ensure the application version is embedded at build time. This typically involves:
+        -   [x] Defining a `var version string` in the `main` package (`cmd/almd/main.go`).
+        -   [x] Setting this variable during the build using ldflags: `go build -ldflags="-X main.version=vX.Y.Z" ./cmd/almd`.
+        -   [x] The `cli.App` `Version` field should use this variable.
+    -   [x] Manual Verification: Build the binary with a version, run `almd --version`, and confirm the embedded version is printed.
 
--   [ ] **Task 12.4: Implement Core `self update` Logic**
-    -   [ ] In the `update` subcommand's `Action`:
-        -   [ ] Retrieve the current application version (embedded in Task 12.3).
-        -   [ ] Use `github.com/creativeprojects/go-selfupdate` to:
-            -   [ ] Configure the updater (e.g., for GitHub releases, using `selfupdate.NewGitHubUpdater`).
-            -   [ ] If `--check` flag is used, detect the latest version and inform the user if an update is available, then exit.
-            -   [ ] Detect the latest available release version.
-            -   [ ] Compare with the current version. If no newer version, inform the user and exit.
-            -   [ ] If a newer version is available, prompt for confirmation unless `--yes` is used.
-            -   [ ] Perform the update (download, verify, replace).
-        -   [ ] Handle errors gracefully (e.g., network issues, no new version, update failure).
-        -   [ ] Provide clear output messages throughout the process.
-    -   [ ] Manual Verification:
-        -   [ ] Test `--check` flag when an update is available and when not.
-        -   [ ] Test update process: with and without `--yes`.
+-   [x] **Task 12.4: Implement Core `self update` Logic (2025-05-08)**
+    -   [x] In the `update` subcommand's `Action`:
+        -   [x] Retrieve the current application version (embedded in Task 12.3).
+        -   [x] Use `github.com/creativeprojects/go-selfupdate` to:
+            -   [x] Configure the updater (e.g., for GitHub releases, using `selfupdate.NewGitHubSource` and `selfupdate.NewUpdater`).
+            -   [x] If `--check` flag is used, detect the latest version and inform the user if an update is available, then exit.
+            -   [x] Detect the latest available release version.
+            -   [x] Compare with the current version. If no newer version, inform the user and exit.
+            -   [x] If a newer version is available, prompt for confirmation unless `--yes` is used.
+            -   [x] Perform the update (download, verify, replace).
+        -   [x] Handle errors gracefully (e.g., network issues, no new version, update failure).
+        -   [x] Provide clear output messages throughout the process.
+    -   [x] Manual Verification:
+        -   [x] Test `--check` flag when an update is available and when not.
+        -   [x] Test update process: with and without `--yes`.
         -   [ ] Test with no new version available.
         -   [ ] Simulate network error if possible to check error handling.
 

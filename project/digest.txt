@@ -2,6 +2,7 @@ Directory structure:
 └── almandine-go/
     ├── README.md
     ├── LICENSE
+    ├── almd
     ├── devenv.lock
     ├── devenv.nix
     ├── devenv.yaml
@@ -198,6 +199,12 @@ SOFTWARE.
 
 
 ================================================
+File: almd
+================================================
+[Non-text file]
+
+
+================================================
 File: devenv.lock
 ================================================
 {
@@ -377,20 +384,36 @@ toolchain go1.24.2
 
 require (
 	github.com/BurntSushi/toml v1.5.0
+	github.com/Masterminds/semver/v3 v3.3.1
+	github.com/creativeprojects/go-selfupdate v1.5.0
 	github.com/fatih/color v1.18.0
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v2 v2.27.6
 )
 
 require (
+	code.gitea.io/sdk/gitea v0.21.0 // indirect
+	github.com/42wim/httpsig v1.2.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/davidmz/go-pageant v1.0.2 // indirect
+	github.com/go-fed/httpsig v1.1.0 // indirect
+	github.com/google/go-github/v30 v30.1.0 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
+	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
+	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/ulikunitz/xz v0.5.12 // indirect
+	github.com/xanzy/go-gitlab v0.115.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
+	golang.org/x/crypto v0.37.0 // indirect
+	golang.org/x/oauth2 v0.29.0 // indirect
 	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/time v0.11.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
@@ -399,14 +422,43 @@ require (
 ================================================
 File: go.sum
 ================================================
+code.gitea.io/sdk/gitea v0.21.0 h1:69n6oz6kEVHRo1+APQQyizkhrZrLsTLXey9142pfkD4=
+code.gitea.io/sdk/gitea v0.21.0/go.mod h1:tnBjVhuKJCn8ibdyyhvUyxrR1Ca2KHEoTWoukNhXQPA=
+github.com/42wim/httpsig v1.2.2 h1:ofAYoHUNs/MJOLqQ8hIxeyz2QxOz8qdSVvp3PX/oPgA=
+github.com/42wim/httpsig v1.2.2/go.mod h1:P/UYo7ytNBFwc+dg35IubuAUIs8zj5zzFIgUCEl55WY=
 github.com/BurntSushi/toml v1.5.0 h1:W5quZX/G/csjUnuI8SUYlsHs9M38FC7znL0lIO+DvMg=
 github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
+github.com/Masterminds/semver/v3 v3.3.1 h1:QtNSWtVZ3nBfk8mAOu/B6v7FMJ+NHTIgUPi7rj+4nv4=
+github.com/Masterminds/semver/v3 v3.3.1/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
 github.com/cpuguy83/go-md2man/v2 v2.0.5 h1:ZtcqGrnekaHpVLArFSe4HK5DoKx1T0rq2DwVB0alcyc=
 github.com/cpuguy83/go-md2man/v2 v2.0.5/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
+github.com/creativeprojects/go-selfupdate v1.5.0 h1:4zuFafc/qGpymx7umexxth2y2lJXoBR49c3uI0Hr+zU=
+github.com/creativeprojects/go-selfupdate v1.5.0/go.mod h1:Pewm8hY7Xe1ne7P8irVBAFnXjTkRuxbbkMlBeTdumNQ=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/davidmz/go-pageant v1.0.2 h1:bPblRCh5jGU+Uptpz6LgMZGD5hJoOt7otgT454WvHn0=
+github.com/davidmz/go-pageant v1.0.2/go.mod h1:P2EDDnMqIwG5Rrp05dTRITj9z2zpGcD9efWSkTNKLIE=
 github.com/fatih/color v1.18.0 h1:S8gINlzdQ840/4pfAwic/ZE0djQEH3wM94VfqLTZcOM=
 github.com/fatih/color v1.18.0/go.mod h1:4FelSpRwEGDpQ12mAdzqdOukCy4u8WUtOY6lkT/6HfU=
+github.com/go-fed/httpsig v1.1.0 h1:9M+hb0jkEICD8/cAiNqEB66R87tTINszBRTjwjQzWcI=
+github.com/go-fed/httpsig v1.1.0/go.mod h1:RCMrTZvN1bJYtofsG4rd5NaO5obxQ5xBkdiS7xsT7bM=
+github.com/golang/protobuf v1.3.2/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
+github.com/google/go-cmp v0.5.2/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
+github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
+github.com/google/go-cmp v0.5.9/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
+github.com/google/go-github/v30 v30.1.0 h1:VLDx+UolQICEOKu2m4uAoMti1SxuEBAl7RSEG16L+Oo=
+github.com/google/go-github/v30 v30.1.0/go.mod h1:n8jBpHl45a/rlBUtRJMOG4GhNADUQFEufcolZ95JfU8=
+github.com/google/go-querystring v1.0.0/go.mod h1:odCYkC5MyYFN7vkCjXpyrEuKhc/BUO6wN/zVPAxq5ck=
+github.com/google/go-querystring v1.1.0 h1:AnCroh3fv4ZBgVIf1Iwtovgjaw/GiKJo8M8yD/fhyJ8=
+github.com/google/go-querystring v1.1.0/go.mod h1:Kcdr2DB4koayq7X8pmAG4sNG59So17icRSOU623lUBU=
+github.com/hashicorp/go-cleanhttp v0.5.2 h1:035FKYIWjmULyFRBKPs8TBQoi0x6d9G4xc9neXJWAZQ=
+github.com/hashicorp/go-cleanhttp v0.5.2/go.mod h1:kO/YDlP8L1346E6Sodw+PrpBSV4/SoxCXGY6BqNFT48=
+github.com/hashicorp/go-hclog v1.6.3 h1:Qr2kF+eVWjTiYmU7Y31tYlP1h0q/X3Nl3tPGdaB11/k=
+github.com/hashicorp/go-hclog v1.6.3/go.mod h1:W4Qnvbt70Wk/zYJryRzDRU/4r0kIg0PVHBcfoyhpF5M=
+github.com/hashicorp/go-retryablehttp v0.7.7 h1:C8hUCYzor8PIfXHa4UrZkU4VvK8o9ISHxT2Q8+VepXU=
+github.com/hashicorp/go-retryablehttp v0.7.7/go.mod h1:pkQpWZeYWskR+D1tR2O5OcBFOxfA7DoAO6xtkuQnHTk=
+github.com/hashicorp/go-version v1.7.0 h1:5tqGy27NaOTB8yJKUZELlFAS/LTKJkrmONwQKeRZfjY=
+github.com/hashicorp/go-version v1.7.0/go.mod h1:fltr4n8CU8Ke44wwGCBoEymUuxUHl09ZGVZPK5anwXA=
 github.com/mattn/go-colorable v0.1.13 h1:fFA4WZxdEF4tXPZVKMLwD8oUnCTTo08duU7wxecdEvA=
 github.com/mattn/go-colorable v0.1.13/go.mod h1:7S9/ev0klgBDR4GtXTXX8a3vIGJpMovkB8vQcUbaXHg=
 github.com/mattn/go-isatty v0.0.16/go.mod h1:kYGgaQfpe5nmfYZH+SKPsOc2e4SrIfOl2e/yFXSvRLM=
@@ -418,14 +470,42 @@ github.com/russross/blackfriday/v2 v2.1.0 h1:JIOH55/0cWyOuilr9/qlrm0BSXldqnqwMsf
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=
 github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
+github.com/ulikunitz/xz v0.5.12 h1:37Nm15o69RwBkXM0J6A5OlE67RZTfzUxTj8fB3dfcsc=
+github.com/ulikunitz/xz v0.5.12/go.mod h1:nbz6k7qbPmH4IRqmfOplQw/tblSgqTqBwxkY0oWt/14=
 github.com/urfave/cli/v2 v2.27.6 h1:VdRdS98FNhKZ8/Az8B7MTyGQmpIr36O1EHybx/LaZ4g=
 github.com/urfave/cli/v2 v2.27.6/go.mod h1:3Sevf16NykTbInEnD0yKkjDAeZDS0A6bzhBH5hrMvTQ=
+github.com/xanzy/go-gitlab v0.115.0 h1:6DmtItNcVe+At/liXSgfE/DZNZrGfalQmBRmOcJjOn8=
+github.com/xanzy/go-gitlab v0.115.0/go.mod h1:5XCDtM7AM6WMKmfDdOiEpyRWUqui2iS9ILfvCZ2gJ5M=
 github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 h1:gEOO8jv9F4OT7lGCjxCBTO/36wtF6j2nSip77qHd4x4=
 github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1/go.mod h1:Ohn+xnUBiLI6FVj/9LpzZWtj1/D6lUovWYBkxHVV3aM=
+golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
+golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
+golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a/go.mod h1:P+XmwS30IXTQdn5tA2iutPOUgjI07+tq3H3K9MVA1s8=
+golang.org/x/crypto v0.37.0 h1:kJNSjF/Xp7kU0iB2Z+9viTPMW4EqqsrywMXLJOOsXSE=
+golang.org/x/crypto v0.37.0/go.mod h1:vg+k43peMZ0pUMhYmVAWysMK35e6ioLh3wB8ZCAfbVc=
+golang.org/x/net v0.0.0-20190311183353-d8887717615a/go.mod h1:t9HGtf8HONx5eT2rtn7q6eTqICYqUVnKs3thJo3Qplg=
+golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3/go.mod h1:t9HGtf8HONx5eT2rtn7q6eTqICYqUVnKs3thJo3Qplg=
+golang.org/x/net v0.0.0-20210226172049-e18ecbb05110/go.mod h1:m0MpNAwzfU5UDzcl9v0D8zg8gWTRqZa9RBIspLL5mdg=
+golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
+golang.org/x/oauth2 v0.29.0 h1:WdYw2tdTK1S8olAzWHdgeqfy+Mtm9XNhv/xJsY65d98=
+golang.org/x/oauth2 v0.29.0/go.mod h1:onh5ek6nERTohokkhCD/y2cV4Do3fxFHFuAejCkRWT8=
+golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+golang.org/x/sys v0.0.0-20190412213103-97732733099d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20201119102817-f84b799fce68/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.6.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.32.0 h1:s77OFDvIQeibCmezSnk/q6iAfkdiQaJi4VzroCFrN20=
 golang.org/x/sys v0.32.0/go.mod h1:BJP2sWEmIv4KK5OTEluFJCKSidICx8ciO85XgH3Ak8k=
+golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
+golang.org/x/term v0.31.0 h1:erwDkOK1Msy6offm1mOgvspSkslFnIGsFnxOKoufg3o=
+golang.org/x/term v0.31.0/go.mod h1:R4BeIy7D95HzImkxGkTW1UQTtP54tio2RyHz7PwK0aw=
+golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
+golang.org/x/text v0.3.3/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=
+golang.org/x/time v0.11.0 h1:/bpjEDfN9tkoN/ryeYHnv5hcMlc8ncjMcM4XBk5NWV0=
+golang.org/x/time v0.11.0/go.mod h1:CDIdPxbZBQxdj6cxyCIdrNogrJKMJ7pr37NYpMcMDSg=
+golang.org/x/tools v0.0.0-20180917221912-90fa682c2a6e/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
+golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
+google.golang.org/appengine v1.1.0/go.mod h1:EbEs0AVv82hx2wNQdGPgUI5lhzA/G0D9YwlJXL52JkM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
@@ -757,12 +837,15 @@ import (
 	"github.com/nightconcept/almandine-go/internal/cli/self"
 )
 
+// version is the application version, set at build time.
+var version = "dev" // Default to "dev" if not set by ldflags
+
 // The main function, where the program execution begins.
 func main() {
 	app := &cli.App{
 		Name:    "almd",
 		Usage:   "A simple project manager for single-file dependencies",
-		Version: "v0.0.1", // Placeholder version
+		Version: version,
 		Action: func(c *cli.Context) error {
 			// Default action if no command is specified
 			_ = cli.ShowAppHelp(c)
@@ -4764,15 +4847,17 @@ File: internal/cli/self/self.go
 package self
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"strings"
 
+	"github.com/Masterminds/semver/v3" // Corrected semver import
+	"github.com/creativeprojects/go-selfupdate"
+
+	// No separate source import needed for basic GitHub
 	"github.com/urfave/cli/v2"
-	// Placeholder for "github.com/creativeprojects/go-selfupdate"
-	// Will be used in Task 12.4
 )
-
-// Version is set at build time
-var Version string
 
 // NewSelfCommand creates a new command for self-management.
 func NewSelfCommand() *cli.Command {
@@ -4795,44 +4880,148 @@ func NewSelfCommand() *cli.Command {
 					},
 					&cli.StringFlag{
 						Name:  "source",
-						Usage: "Specify a custom update source URL (e.g., for a specific release)",
+						Usage: "Specify a custom GitHub update source as 'owner/repo' (e.g., 'nightconcept/almandine-go')",
 					},
 					&cli.BoolFlag{
 						Name:  "verbose",
 						Usage: "Enable verbose output",
 					},
 				},
-				Action: func(c *cli.Context) error {
-					// Logic for Task 12.4 will go here.
-					// For now, just print a message indicating it's not implemented.
-					fmt.Println("Self update command action (Task 12.4) not yet implemented.")
-					if c.Bool("verbose") {
-						fmt.Printf("Current version (from main.Version, to be embedded): %s\n", Version)
-						fmt.Printf("Flags: --yes=%t, --check=%t, --source='%s', --verbose=%t\n",
-							c.Bool("yes"),
-							c.Bool("check"),
-							c.String("source"),
-							c.Bool("verbose"),
-						)
-					}
-					if c.Bool("check") {
-						fmt.Println("Checking for updates (simulated)...")
-						// Simulate checking logic
-						fmt.Println("No new version available (simulated).")
-						return nil
-					}
-					// Simulate update process
-					if !c.Bool("yes") {
-						fmt.Println("A new version is available. Update? (y/N)")
-						// Simulate user input or skip if --yes
-					}
-					fmt.Println("Updating (simulated)...")
-					fmt.Println("Update complete (simulated).")
-					return nil
-				},
+				Action: updateAction,
 			},
 		},
 	}
+}
+
+func updateAction(c *cli.Context) error {
+	currentVersionStr := c.App.Version
+	verbose := c.Bool("verbose")
+
+	if verbose {
+		fmt.Printf("almd current version: %s\n", currentVersionStr)
+	}
+
+	currentSemVer, err := semver.NewVersion(strings.TrimPrefix(currentVersionStr, "v"))
+	if err != nil {
+		// Try parsing without 'v' if the first attempt failed and it didn't have 'v'
+		if !strings.HasPrefix(currentVersionStr, "v") {
+			currentSemVer, err = semver.NewVersion(currentVersionStr)
+		}
+		if err != nil {
+			return cli.Exit(fmt.Sprintf("Error parsing current version '%s': %v. Ensure version is like vX.Y.Z or X.Y.Z.", currentVersionStr, err), 1)
+		}
+	}
+	if verbose {
+		fmt.Printf("Parsed current semantic version: %s\n", currentSemVer.String())
+	}
+
+	sourceFlag := c.String("source")
+	repoSlug := "nightconcept/almandine-go" // Default repository
+
+	if sourceFlag != "" {
+		parts := strings.Split(sourceFlag, "/")
+		if len(parts) == 2 && parts[0] != "" && parts[1] != "" {
+			repoSlug = sourceFlag
+			if verbose {
+				fmt.Printf("Using custom GitHub source: %s\n", repoSlug)
+			}
+		} else {
+			return cli.Exit(fmt.Sprintf("Invalid --source format. Expected 'owner/repo', got: %s.", sourceFlag), 1)
+		}
+	} else {
+		if verbose {
+			fmt.Printf("Using default GitHub source: %s\n", repoSlug)
+		}
+	}
+
+	// For standard GitHub, GitHubConfig can be empty.
+	// For GitHub Enterprise, EnterpriseBaseURL would be set here.
+	ghSource, err := selfupdate.NewGitHubSource(selfupdate.GitHubConfig{})
+	if err != nil {
+		return cli.Exit(fmt.Sprintf("Error creating GitHub source: %v", err), 1)
+	}
+
+	updater, err := selfupdate.NewUpdater(selfupdate.Config{
+		Source: ghSource,
+	})
+	if err != nil {
+		return cli.Exit(fmt.Sprintf("Failed to initialize updater: %v", err), 1)
+	}
+
+	if verbose {
+		fmt.Println("Checking for latest version...")
+	}
+
+	// DetectLatest takes a Repository object, created by ParseSlug
+	repository := selfupdate.ParseSlug(repoSlug)
+	latestRelease, found, err := updater.DetectLatest(c.Context, repository)
+	if err != nil {
+		// An actual error occurred during detection
+		return cli.Exit(fmt.Sprintf("Error detecting latest version: %v", err), 1)
+	}
+
+	if !found {
+		// No update was found, and no error occurred.
+		if verbose {
+			fmt.Println("No update available (checked with source, no newer version found).")
+		}
+		fmt.Printf("Current version %s is already the latest.\n", currentVersionStr)
+		return nil
+	}
+
+	// If found is true, latestRelease is populated.
+	// latestRelease.Version() returns string, latestRelease.version is *semver.Version
+	if verbose {
+		fmt.Printf("Latest version detected: %s (Release URL: %s)\n", latestRelease.Version(), latestRelease.URL)
+		if latestRelease.AssetURL != "" {
+			fmt.Printf("Asset URL: %s\n", latestRelease.AssetURL)
+		}
+		if latestRelease.ReleaseNotes != "" { // Accessing ReleaseNotes directly
+			fmt.Printf("Release Notes:\n%s\n", latestRelease.ReleaseNotes)
+		}
+	}
+
+	// Compare using the internal *semver.Version objects
+	// The selfupdate.Release struct has methods like GreaterThan(string).
+	// currentSemVer is a *semver.Version, so we use its string representation for the comparison.
+	if !latestRelease.GreaterThan(currentSemVer.String()) {
+		fmt.Printf("Current version %s is already the latest or newer.\n", currentVersionStr)
+		return nil
+	}
+
+	fmt.Printf("New version available: %s (current: %s)\n", latestRelease.Version(), currentVersionStr)
+
+	if c.Bool("check") {
+		return nil
+	}
+
+	if !c.Bool("yes") {
+		fmt.Print("Do you want to update? (y/N): ")
+		reader := bufio.NewReader(os.Stdin)
+		input, _ := reader.ReadString('\n')
+		if strings.TrimSpace(strings.ToLower(input)) != "y" {
+			fmt.Println("Update cancelled.")
+			return nil
+		}
+	}
+
+	fmt.Printf("Updating to %s...\n", latestRelease.Version())
+	execPath, err := os.Executable()
+	if err != nil {
+		return cli.Exit(fmt.Sprintf("Could not get executable path: %v", err), 1)
+	}
+	if verbose {
+		fmt.Printf("Current executable path: %s\n", execPath)
+	}
+
+	// The UpdateTo method expects a *Release object
+	err = updater.UpdateTo(c.Context, latestRelease, execPath)
+	if err != nil {
+		return cli.Exit(fmt.Sprintf("Failed to update: %v", err), 1)
+	}
+
+	fmt.Printf("Successfully updated to version %s.\n", latestRelease.Version())
+	return nil
 }
 
 
@@ -6447,28 +6636,28 @@ File: project/TASKS.md
     -   [x] Add `github.com/creativeprojects/go-selfupdate` as a project dependency (`go get github.com/creativeprojects/go-selfupdate`).
     -   [x] Manual Verification: `go.mod` and `go.sum` are updated.
 
--   [ ] **Task 12.3: Implement Version Embedding**
-    -   [ ] Ensure the application version is embedded at build time. This typically involves:
-        -   [ ] Defining a `var version string` in the `main` package (`cmd/almd/main.go`).
-        -   [ ] Setting this variable during the build using ldflags: `go build -ldflags="-X main.version=vX.Y.Z" ./cmd/almd`.
-        -   [ ] The `cli.App` `Version` field should use this variable.
-    -   [ ] Manual Verification: Build the binary with a version, run `almd --version`, and confirm the embedded version is printed.
+-   [x] **Task 12.3: Implement Version Embedding (2025-05-08)**
+    -   [x] Ensure the application version is embedded at build time. This typically involves:
+        -   [x] Defining a `var version string` in the `main` package (`cmd/almd/main.go`).
+        -   [x] Setting this variable during the build using ldflags: `go build -ldflags="-X main.version=vX.Y.Z" ./cmd/almd`.
+        -   [x] The `cli.App` `Version` field should use this variable.
+    -   [x] Manual Verification: Build the binary with a version, run `almd --version`, and confirm the embedded version is printed.
 
--   [ ] **Task 12.4: Implement Core `self update` Logic**
-    -   [ ] In the `update` subcommand's `Action`:
-        -   [ ] Retrieve the current application version (embedded in Task 12.3).
-        -   [ ] Use `github.com/creativeprojects/go-selfupdate` to:
-            -   [ ] Configure the updater (e.g., for GitHub releases, using `selfupdate.NewGitHubUpdater`).
-            -   [ ] If `--check` flag is used, detect the latest version and inform the user if an update is available, then exit.
-            -   [ ] Detect the latest available release version.
-            -   [ ] Compare with the current version. If no newer version, inform the user and exit.
-            -   [ ] If a newer version is available, prompt for confirmation unless `--yes` is used.
-            -   [ ] Perform the update (download, verify, replace).
-        -   [ ] Handle errors gracefully (e.g., network issues, no new version, update failure).
-        -   [ ] Provide clear output messages throughout the process.
-    -   [ ] Manual Verification:
-        -   [ ] Test `--check` flag when an update is available and when not.
-        -   [ ] Test update process: with and without `--yes`.
+-   [x] **Task 12.4: Implement Core `self update` Logic (2025-05-08)**
+    -   [x] In the `update` subcommand's `Action`:
+        -   [x] Retrieve the current application version (embedded in Task 12.3).
+        -   [x] Use `github.com/creativeprojects/go-selfupdate` to:
+            -   [x] Configure the updater (e.g., for GitHub releases, using `selfupdate.NewGitHubSource` and `selfupdate.NewUpdater`).
+            -   [x] If `--check` flag is used, detect the latest version and inform the user if an update is available, then exit.
+            -   [x] Detect the latest available release version.
+            -   [x] Compare with the current version. If no newer version, inform the user and exit.
+            -   [x] If a newer version is available, prompt for confirmation unless `--yes` is used.
+            -   [x] Perform the update (download, verify, replace).
+        -   [x] Handle errors gracefully (e.g., network issues, no new version, update failure).
+        -   [x] Provide clear output messages throughout the process.
+    -   [x] Manual Verification:
+        -   [x] Test `--check` flag when an update is available and when not.
+        -   [x] Test update process: with and without `--yes`.
         -   [ ] Test with no new version available.
         -   [ ] Simulate network error if possible to check error handling.
 
