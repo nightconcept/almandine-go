@@ -547,12 +547,12 @@
 
 **Goal:** Implement the `almd self update` command to allow the Almandine tool to update itself.
 
--   [ ] **Task 12.1: `urfave/cli` Command Setup for `self update`**
-    -   [ ] Define the `self` command structure (`cli.Command`) in a new file (e.g., `internal/cli/self/self.go`).
-    -   [ ] Define the `update` subcommand within the `self` command.
-    -   [ ] Add the `self` command (with its `update` subcommand) to the `urfave/cli` App in `cmd/almd/main.go`.
-    -   [ ] Define flags for `almd self update`: `--yes`/`-y` (bool), `--check` (bool), `--source <url>` (string), `--verbose` (bool).
-    -   [ ] Manual Verification: Run `almd self update --help` and confirm the command, subcommand, and flags are listed correctly.
+-   [x] **Task 12.1: `urfave/cli` Command Setup for `self update`**
+    -   [x] Define the `self` command structure (`cli.Command`) in a new file (e.g., `internal/cli/self/self.go`).
+    -   [x] Define the `update` subcommand within the `self` command.
+    -   [x] Add the `self` command (with its `update` subcommand) to the `urfave/cli` App in `cmd/almd/main.go`.
+    -   [x] Define flags for `almd self update`: `--yes`/`-y` (bool), `--check` (bool), `--source <url>` (string), `--verbose` (bool).
+    -   [x] Manual Verification: Run `almd self update --help` and confirm the command, subcommand, and flags are listed correctly.
 
 -   [ ] **Task 12.2: Add Self-Update Library**
     -   [ ] Add `github.com/creativeprojects/go-selfupdate` as a project dependency (`go get github.com/creativeprojects/go-selfupdate`).

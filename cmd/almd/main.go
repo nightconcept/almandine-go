@@ -16,6 +16,7 @@ import (
 	"github.com/nightconcept/almandine-go/internal/cli/install" // Changed from update to install
 	"github.com/nightconcept/almandine-go/internal/cli/list"
 	"github.com/nightconcept/almandine-go/internal/cli/remove"
+	"github.com/nightconcept/almandine-go/internal/cli/self"
 )
 
 // The main function, where the program execution begins.
@@ -35,6 +36,7 @@ func main() {
 			remove.RemoveCommand(),
 			install.NewInstallCommand(), // Changed from update.NewUpdateCommand()
 			list.ListCmd,
+			self.NewSelfCommand(),
 		},
 	}
 
