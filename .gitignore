@@ -1,0 +1,12 @@
+# Devenv
+.devenv*
+devenv.local.nix
+
+# direnv
+.direnv
+
+project.toml
+almd-lock.toml
+build/*
+build/almd
+build/almd.exe

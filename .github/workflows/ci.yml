@@ -1,0 +1,47 @@
+# CI workflow for lint, test, and coverage reporting (Coveralls)
+# Runs on all pushes and PRs
+
+name: Go CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    name: Test on Go ${{ matrix.go-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [ '1.23', '1.24' ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Install Go tools
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          go install github.com/mattn/goveralls@latest
+
+      - name: Download Go modules
+        run: go mod download
+
+      - name: Lint source
+        run: golangci-lint run ./...
+
+      - name: Run tests with coverage
+        run: go test -v ./... -race -coverprofile=coverage.out -covermode=atomic
+
+      - name: Upload coverage to Coveralls
+        if: matrix.go-version == '1.24' # Only upload from one Go version
+        env:
+          COVERALLS_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+        run: |
+          goveralls -coverprofile=coverage.out -service=github -repotoken $COVERALLS_TOKEN
