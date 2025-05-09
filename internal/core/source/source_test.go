@@ -144,7 +144,7 @@ func TestParseSourceURL_GitHubShorthand(t *testing.T) {
 }
 
 func TestParseSourceURL_FullGitHubURLs(t *testing.T) {
-	t.Parallel()
+	// t.Parallel() // Removed to prevent state leakage of testModeBypassHostValidation
 	tests := []struct {
 		name        string
 		url         string
@@ -237,7 +237,7 @@ func TestParseSourceURL_FullGitHubURLs(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // capture range variable
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+			// t.Parallel() // Potentially problematic with global state if other tests modify it
 			got, err := source.ParseSourceURL(tt.url)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -314,7 +314,7 @@ func TestParseSourceURL_WithTestModeBypass_FullMockURL(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // capture range variable
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+			// t.Parallel() // Removed as sub-tests depend on global state set by parent
 			got, err := source.ParseSourceURL(tt.url)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -330,7 +330,7 @@ func TestParseSourceURL_WithTestModeBypass_FullMockURL(t *testing.T) {
 }
 
 func TestParseSourceURL_NonGitHubURLs(t *testing.T) {
-	t.Parallel()
+	// t.Parallel() // Removed to prevent state leakage of testModeBypassHostValidation
 	tests := []struct {
 		name        string
 		url         string
@@ -360,7 +360,7 @@ func TestParseSourceURL_NonGitHubURLs(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // capture range variable
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+			// t.Parallel() // Potentially problematic with global state if other tests modify it
 			_, err := source.ParseSourceURL(tt.url)
 			require.Error(t, err)
 			if tt.errContains != "" {
