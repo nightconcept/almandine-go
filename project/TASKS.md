@@ -654,7 +654,8 @@
     -   [x] Updated assertion to correctly match the expected error message ("no such file or directory").
 -   [x] **Task 14.2: Fix Data Races in `internal/core/source` tests (2025-05-08)**
     -   [x] Investigated data races reported for `githubAPIURL` and `testModeBypassHostValidation` in `source_test.go`, `github_api_test.go`, and `source.go`.
-    -   [x] Implemented synchronization using exported mutexes (`GithubAPIBaseURLMutex`, `TestModeBypassHostValidationMutex`) in the `source` package to protect shared global variables accessed by parallel tests. Updated `github_api.go`, `source.go`, and `source_test.go` to use these mutexes.
+    -   [x] Implemented synchronization using exported mutexes (`GithubAPIBaseURLMutex`, `TestModeBypassHostValidationMutex`) in the `source` package to protect shared global variables accessed by parallel tests. Updated `github_api.go`, `source.go`, and `source_test.go` to use these mutexes. (Attempt 1)
+    -   [x] Added a package-level mutex (`githubAPITestMutex`) in `internal/core/source/github_api_test.go` to serialize test functions that call `setupSourceTest` or otherwise modify shared global state in the `source` package. Removed `t.Parallel()` from these specific test functions. (Attempt 2 - 2025-05-08)
 -   [x] **Task 14.3: Fix Path Mismatch Failures in `internal/cli/list/list_test.go` (2025-05-08)**
     -   [x] Investigated failures in `TestListCommand_SingleDependencyFullyInstalledAndLocked`, `TestListCommand_MultipleDependenciesVariedStates`, and `TestListCommand_AliasLs` due to `/private/var` vs `/var` path differences on macOS.
     -   [x] Updated tests to use `filepath.EvalSymlinks` on the temporary directory path before constructing expected output strings, ensuring canonical paths are compared.

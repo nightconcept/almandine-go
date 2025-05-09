@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync" // Added for mutex
 	"testing"
 	"time"
 
@@ -15,8 +16,13 @@ import (
 	"github.com/nightconcept/almandine-go/internal/core/source"
 )
 
+var githubAPITestMutex sync.Mutex // Mutex to serialize tests modifying global source state
+
 func TestGetLatestCommitSHAForFile_Success(t *testing.T) {
-	t.Parallel()
+	// t.Parallel() // Removed: This test modifies global state via setupSourceTest
+	githubAPITestMutex.Lock()
+	defer githubAPITestMutex.Unlock()
+
 	expectedSHA := "abcdef1234567890"
 	mockResponse := []source.GitHubCommitInfo{
 		{SHA: expectedSHA},
@@ -42,7 +48,10 @@ func TestGetLatestCommitSHAForFile_Success(t *testing.T) {
 }
 
 func TestGetLatestCommitSHAForFile_EmptyResponse(t *testing.T) {
-	t.Parallel()
+	// t.Parallel() // Removed: This test modifies global state via setupSourceTest
+	githubAPITestMutex.Lock()
+	defer githubAPITestMutex.Unlock()
+
 	mockResponse := []source.GitHubCommitInfo{} // Empty array
 	responseBody, err := json.Marshal(mockResponse)
 	require.NoError(t, err)
@@ -60,7 +69,10 @@ func TestGetLatestCommitSHAForFile_EmptyResponse(t *testing.T) {
 }
 
 func TestGetLatestCommitSHAForFile_GitHubAPIError(t *testing.T) {
-	t.Parallel()
+	// t.Parallel() // Removed: This test modifies global state via setupSourceTest
+	githubAPITestMutex.Lock()
+	defer githubAPITestMutex.Unlock()
+
 	_, cleanup := setupSourceTest(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound) // Simulate a 404 from GitHub API
@@ -74,7 +86,10 @@ func TestGetLatestCommitSHAForFile_GitHubAPIError(t *testing.T) {
 }
 
 func TestGetLatestCommitSHAForFile_MalformedJSONResponse(t *testing.T) {
-	t.Parallel()
+	// t.Parallel() // Removed: This test modifies global state via setupSourceTest
+	githubAPITestMutex.Lock()
+	defer githubAPITestMutex.Unlock()
+
 	_, cleanup := setupSourceTest(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -88,7 +103,10 @@ func TestGetLatestCommitSHAForFile_MalformedJSONResponse(t *testing.T) {
 }
 
 func TestGetLatestCommitSHAForFile_NetworkError(t *testing.T) {
-	// t.Parallel() // Removed due to manual global state manipulation and server closing
+	// t.Parallel() // This test manually manipulates global state and server lifecycle.
+	githubAPITestMutex.Lock()
+	defer githubAPITestMutex.Unlock()
+
 	// Setup a server that immediately closes the connection
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hj, ok := w.(http.Hijacker)
@@ -105,17 +123,21 @@ func TestGetLatestCommitSHAForFile_NetworkError(t *testing.T) {
 	}))
 	// No defer server.Close() here as we close it within the test logic for this specific case.
 
+	source.GithubAPIBaseURLMutex.Lock()
 	originalAPIBaseURL := source.GithubAPIBaseURL
 	source.GithubAPIBaseURL = server.URL
-	source.SetTestModeBypassHostValidation(true) // Not strictly needed here but good for consistency
+	source.GithubAPIBaseURLMutex.Unlock()
+	source.SetTestModeBypassHostValidation(true) // This function handles its own locking
 
 	// Immediately close the server to ensure the client fails to connect or send request
 	server.Close()
 
 	_, err := source.GetLatestCommitSHAForFile("owner", "repo", "file.txt", "main")
 
+	source.GithubAPIBaseURLMutex.Lock()
 	source.GithubAPIBaseURL = originalAPIBaseURL // Restore original
-	source.SetTestModeBypassHostValidation(false)
+	source.GithubAPIBaseURLMutex.Unlock()
+	source.SetTestModeBypassHostValidation(false) // This function handles its own locking
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to call GitHub API") // Error from httpClient.Do(req)
@@ -140,7 +162,10 @@ func MockGitHubCommit(sha string, date time.Time) source.GitHubCommitInfo {
 }
 
 func TestGetLatestCommitSHAForFile_UsesCorrectURLParameters(t *testing.T) {
-	t.Parallel()
+	// t.Parallel() // Removed: This test modifies global state via setupSourceTest
+	githubAPITestMutex.Lock()
+	defer githubAPITestMutex.Unlock()
+
 	owner, repo, pathInRepo, ref := "test-owner", "test-repo", "src/main.go", "develop"
 	expectedSHA := "commitsha123"
 
