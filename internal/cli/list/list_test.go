@@ -216,20 +216,193 @@ func TestListCommand_ProjectTomlNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "Error: project.toml not found. No project configuration loaded.")
 }
 
-// Placeholder for future tests from Task 9.2.x
-func TestListCommand_SingleDependency(t *testing.T) {
-	// TODO: Implement Sub-Task 9.2.2
-	t.Skip("TODO: Implement Sub-Task 9.2.2: Test almd list - Single dependency (fully installed and locked)")
+// TestListCommand_SingleDependencyFullyInstalledAndLocked tests `almd list`
+// for a single dependency that is fully installed and locked.
+func TestListCommand_SingleDependencyFullyInstalledAndLocked(t *testing.T) {
+	projectName := "my-lib-project"
+	projectVersion := "1.2.3"
+	depName := "cool-lib"
+	depSource := "github:user/repo/cool-lib.lua@v1.0.0"
+	depPath := "libs/cool-lib.lua"
+	depContent := "-- cool lib content"
+	depHash := "sha256:0567f79f438dda700c93759f193096199983806187765462085899533180c07e" // sha256 of "-- cool lib content"
+
+	projectTomlContent := fmt.Sprintf(`
+[package]
+name = "%s"
+version = "%s"
+description = "A test project with one lib."
+license = "MIT"
+
+[dependencies.%s]
+source = "%s"
+path = "%s"
+`, projectName, projectVersion, depName, depSource, depPath)
+
+	lockfileContent := fmt.Sprintf(`
+api_version = "1"
+[package.%s]
+source = "https://raw.githubusercontent.com/user/repo/v1.0.0/cool-lib.lua"
+path = "%s"
+hash = "%s"
+`, depName, depPath, depHash)
+
+	depFiles := map[string]string{
+		depPath: depContent,
+	}
+
+	tempDir := setupListTestEnvironment(t, projectTomlContent, lockfileContent, depFiles)
+
+	// Expected output format (NO_COLOR is set by runListCommand)
+	// ProjectName@Version /path/to/project/root
+	//
+	// dependencies:
+	// DepName DepHash DepPath
+	expectedOutput := fmt.Sprintf("%s@%s %s\n\ndependencies:\n%s %s %s\n",
+		projectName, projectVersion, tempDir,
+		depName, depHash, depPath,
+	)
+
+	output, err := runListCommand(t, tempDir, "list")
+
+	require.NoError(t, err)
+	assert.Equal(t, strings.TrimSpace(expectedOutput), strings.TrimSpace(output))
 }
 
 func TestListCommand_MultipleDependenciesVariedStates(t *testing.T) {
-	// TODO: Implement Sub-Task 9.2.3
-	t.Skip("TODO: Implement Sub-Task 9.2.3: Test almd list - Multiple dependencies with varied states")
+	projectName := "multi-dep-project"
+	projectVersion := "0.5.0"
+
+	// Dep A: Fully installed and locked
+	depAName := "depA"
+	depASourceToml := "github:user/repo/depA.lua@v1"
+	depAPath := "libs/depA.lua"
+	depAContent := "contentA"
+	depAHashLock := "sha256:87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7" // sha256("contentA")
+	depARawURLLock := "https://raw.githubusercontent.com/user/repo/v1/depA.lua"
+
+	// Dep B: In manifest, not in lockfile, file exists
+	depBName := "depB"
+	depBSourceToml := "github:user/repo/depB.lua@main"
+	depBPath := "libs/depB.lua"
+	depBContent := "contentB"
+	// No lockfile entry for depB
+
+	// Dep C: In manifest & lockfile, file missing
+	depCName := "depC"
+	depCSourceToml := "github:user/repo/depC.lua@v2"
+	depCPath := "libs/depC.lua"
+	// Assume "contentC" was used to generate this hash
+	depCHashLock := "sha256:2475709fe8a3c28964798420ddd7de39cd9d1930e91035030966877040150863" // sha256("contentC")
+	depCRawURLLock := "https://raw.githubusercontent.com/user/repo/v2/depC.lua"
+
+	projectTomlContent := fmt.Sprintf(`
+[package]
+name = "%s"
+version = "%s"
+
+[dependencies.%s]
+source = "%s"
+path = "%s"
+
+[dependencies.%s]
+source = "%s"
+path = "%s"
+
+[dependencies.%s]
+source = "%s"
+path = "%s"
+`, projectName, projectVersion,
+		depAName, depASourceToml, depAPath,
+		depBName, depBSourceToml, depBPath,
+		depCName, depCSourceToml, depCPath)
+
+	lockfileContent := fmt.Sprintf(`
+api_version = "1"
+[package.%s]
+source = "%s"
+path = "%s"
+hash = "%s"
+
+[package.%s]
+source = "%s"
+path = "%s"
+hash = "%s"
+`, depAName, depARawURLLock, depAPath, depAHashLock, // depA is locked
+		depCName, depCRawURLLock, depCPath, depCHashLock) // depC is locked, depB is not
+
+	depFiles := map[string]string{
+		depAPath: depAContent, // File for depA exists
+		depBPath: depBContent, // File for depB exists
+		// depCPath is intentionally missing
+	}
+
+	tempDir := setupListTestEnvironment(t, projectTomlContent, lockfileContent, depFiles)
+
+	// Expected output format (NO_COLOR is set by runListCommand)
+	// ProjectName@Version /path/to/project/root
+	//
+	// dependencies:
+	// DepAName DepAHash DepAPath
+	// DepBName not locked DepBPath
+	// DepCName DepCHash DepCPath
+	// Order should match project.toml
+	expectedOutput := fmt.Sprintf("%s@%s %s\n\ndependencies:\n%s %s %s\n%s %s %s\n%s %s %s\n",
+		projectName, projectVersion, tempDir,
+		depAName, depAHashLock, depAPath,
+		depBName, "not locked", depBPath,
+		depCName, depCHashLock, depCPath,
+	)
+
+	output, err := runListCommand(t, tempDir, "list")
+
+	require.NoError(t, err)
+	assert.Equal(t, strings.TrimSpace(expectedOutput), strings.TrimSpace(output))
 }
 
 func TestListCommand_AliasLs(t *testing.T) {
-	// TODO: Implement Sub-Task 9.2.4
-	t.Skip("TODO: Implement Sub-Task 9.2.4: Test almd ls (alias) - Verify alias works")
+	projectName := "alias-test-project"
+	projectVersion := "1.0.0"
+	depName := "lib-for-ls"
+	depSource := "github:user/repo/lib-for-ls.lua@v0.1"
+	depPath := "modules/lib-for-ls.lua"
+	depContent := "function lib_for_ls() return 'ls alias test' end"
+	// sha256 for "function lib_for_ls() return 'ls alias test' end"
+	depHash := "sha256:b0d9a380789173d734093af007772d31790ead09999b891d180099160e27f9a0"
+
+	projectTomlContent := fmt.Sprintf(`
+[package]
+name = "%s"
+version = "%s"
+[dependencies.%s]
+source = "%s"
+path = "%s"
+`, projectName, projectVersion, depName, depSource, depPath)
+
+	lockfileContent := fmt.Sprintf(`
+api_version = "1"
+[package.%s]
+source = "https://raw.githubusercontent.com/user/repo/v0.1/lib-for-ls.lua"
+path = "%s"
+hash = "%s"
+`, depName, depPath, depHash)
+
+	depFiles := map[string]string{
+		depPath: depContent,
+	}
+
+	tempDir := setupListTestEnvironment(t, projectTomlContent, lockfileContent, depFiles)
+
+	expectedOutput := fmt.Sprintf("%s@%s %s\n\ndependencies:\n%s %s %s\n",
+		projectName, projectVersion, tempDir,
+		depName, depHash, depPath,
+	)
+
+	// Run 'ls' command instead of 'list'
+	output, err := runListCommand(t, tempDir, "ls")
+
+	require.NoError(t, err)
+	assert.Equal(t, strings.TrimSpace(expectedOutput), strings.TrimSpace(output), "Output of 'almd ls' should match expected 'almd list' output")
 }
 
 // Note: Task 9.2.5 "project.toml not found" is covered by TestListCommand_ProjectTomlNotFound

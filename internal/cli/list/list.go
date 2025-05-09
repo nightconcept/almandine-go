@@ -68,11 +68,10 @@ var ListCmd = &cli.Command{
 		projectVersionColor := color.New(color.FgMagenta).SprintFunc() // Version not specified for bold/underline
 		projectPathColor := color.New(color.FgHiBlack, color.Bold, color.Underline).SprintFunc()
 		dependenciesHeaderColor := color.New(color.FgCyan, color.Bold).SprintFunc()
-		depNameColor := color.New(color.FgYellow).SprintFunc()
-		// depHashColor will use standard terminal color, so no specific SprintFunc needed for it unless we want to force reset.
-		// For explicit reset, you could use: color.New(color.Reset).SprintFunc()
-		// However, fmt.Printf handles standard color naturally if no color func is applied.
-		depPathColor := color.New(color.FgGreen).SprintFunc()
+		// PRD Colors for dependency line: Name (White), Hash (Yellow), Path (DimGray)
+		depNameColor := color.New(color.FgWhite).SprintFunc()
+		depHashColor := color.New(color.FgYellow).SprintFunc()
+		depPathColor := color.New(color.FgHiBlack).SprintFunc()
 		// Standard color for "@"
 		atStr := "@"
 
@@ -145,9 +144,9 @@ var ListCmd = &cli.Command{
 				lockedHash = "locked (no hash)"
 			}
 
-			// New format: name path hash (Updated 2025-05-08)
-			// Apply new colors: Dependency Name (Yellow), Path (Green), Hash (Standard)
-			fmt.Printf("%s %s %s\n", depNameColor(dep.Name), depPathColor(dep.ProjectPath), lockedHash)
+			// PRD format: Name Hash Path
+			// Apply PRD colors: Dependency Name (White), Hash (Yellow), Path (DimGray)
+			fmt.Printf("%s %s %s\n", depNameColor(dep.Name), depHashColor(lockedHash), depPathColor(dep.ProjectPath))
 		}
 		return nil
 	},

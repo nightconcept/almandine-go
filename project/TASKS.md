@@ -479,22 +479,22 @@
         -   [x] Setup: Empty `project.toml` or no `[dependencies]` table.
         -   [x] Execute: `almd list`.
         -   [x] Verify: Output indicates no dependencies. For `--json`, verify empty array or appropriate null structure. (Note: JSON output not yet implemented, test verifies default behavior)
-    -   [ ] **Sub-Task 9.2.2: Test `almd list` - Single dependency (fully installed and locked)**
-        -   [ ] Setup: `project.toml` with one dep, `almd-lock.toml` with corresponding entry, local file exists.
-        -   [ ] Execute: `almd list`.
-        -   [ ] Verify: Correct default output for the dependency.
-    -   [ ] **Sub-Task 9.2.3: Test `almd list` - Multiple dependencies with varied states**
-        -   [ ] Setup: Mix of deps: one fully installed, one in manifest but not lockfile, one in manifest & lockfile but file missing.
-        -   [ ] Execute: `almd list`.
-        -   [ ] Verify: Correct default output for each, reflecting their state.
-    -   [ ] **Sub-Task 9.2.4: Test `almd ls` (alias) - Verify alias works**
-        -   [ ] Setup: Basic project with one dependency.
-        -   [ ] Execute: `almd ls`.
-        -   [ ] Verify: Output is identical to `almd list`.
-    -   [ ] **Sub-Task 9.2.5: Test `almd list` - `project.toml` not found**
-        -   [ ] Setup: Run `list` in a temp dir without `project.toml`.
-        -   [ ] Execute: `almd list`.
-        -   [ ] Verify: Command returns an appropriate error or "no dependencies" message as per PRD.
+    -   [x] **Sub-Task 9.2.2: Test `almd list` - Single dependency (fully installed and locked) (2025-05-08)**
+        -   [x] Setup: `project.toml` with one dep, `almd-lock.toml` with corresponding entry, local file exists.
+        -   [x] Execute: `almd list`.
+        -   [x] Verify: Correct default output for the dependency.
+    -   [x] **Sub-Task 9.2.3: Test `almd list` - Multiple dependencies with varied states (2025-05-08)**
+        -   [x] Setup: Mix of deps: one fully installed, one in manifest but not lockfile, one in manifest & lockfile but file missing.
+        -   [x] Execute: `almd list`.
+        -   [x] Verify: Correct default output for each, reflecting their state.
+    -   [x] **Sub-Task 9.2.4: Test `almd ls` (alias) - Verify alias works (2025-05-08)**
+        -   [x] Setup: Basic project with one dependency.
+        -   [x] Execute: `almd ls`.
+        -   [x] Verify: Output is identical to `almd list`.
+    -   [x] **Sub-Task 9.2.5: Test `almd list` - `project.toml` not found (2025-05-08 - Covered by existing `TestListCommand_ProjectTomlNotFound`)**
+        -   [x] Setup: Run `list` in a temp dir without `project.toml`.
+        -   [x] Execute: `almd list`.
+        -   [x] Verify: Command returns an appropriate error or "no dependencies" message as per PRD.
 
 ## Milestone 10: `list` Command Output Enhancement
 
