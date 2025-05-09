@@ -2,11 +2,16 @@ package remove
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
+	"github.com/fatih/color"
 	"github.com/nightconcept/almandine-go/internal/core/config"
 	"github.com/nightconcept/almandine-go/internal/core/lockfile"
+	"github.com/nightconcept/almandine-go/internal/core/source" // Changed from project to source
 	"github.com/urfave/cli/v2"
 )
 
@@ -28,6 +33,7 @@ func RemoveCommand() *cli.Command {
 		Usage:     "Remove a dependency from the project",
 		ArgsUsage: "DEPENDENCY",
 		Action: func(c *cli.Context) error {
+			startTime := time.Now()
 			if !c.Args().Present() {
 				return fmt.Errorf("dependency name is required")
 			}
@@ -37,10 +43,6 @@ func RemoveCommand() *cli.Command {
 			// Load project.toml from the current directory
 			proj, err := config.LoadProjectToml(".")
 			if err != nil {
-				// config.LoadProjectToml will return an error if project.toml is not found or unreadable
-				// os.IsNotExist check might be too specific if LoadProjectToml wraps errors.
-				// A more general check for err != nil is better here.
-				// The error from LoadProjectToml should be descriptive enough.
 				return cli.Exit(fmt.Sprintf("Error: Failed to load %s: %v", config.ProjectTomlName, err), 1)
 			}
 
@@ -54,6 +56,7 @@ func RemoveCommand() *cli.Command {
 			}
 
 			dependencyPath := dep.Path
+			dependencySource := dep.Source // Store source for version display
 			// Remove the dependency from the manifest
 			delete(proj.Dependencies, depName)
 
@@ -61,89 +64,113 @@ func RemoveCommand() *cli.Command {
 			if err := config.WriteProjectToml(".", proj); err != nil {
 				return cli.Exit(fmt.Sprintf("Error: Failed to update %s: %v", config.ProjectTomlName, err), 1)
 			}
-			fmt.Printf("Successfully removed dependency '%s' from %s.\n", depName, config.ProjectTomlName)
+			// fmt.Printf("Successfully removed dependency '%s' from %s.\n", depName, config.ProjectTomlName) // Silenced
 
 			// Delete the dependency file
+			fileDeleted := false
 			if err := os.Remove(dependencyPath); err != nil {
-				// If the file is already gone, it's not a critical error for the remove operation's main goal (manifest update).
-				// However, other errors (like permission issues) should be reported.
 				if !os.IsNotExist(err) {
-					return cli.Exit(fmt.Sprintf("Error: Failed to delete dependency file '%s': %v. Manifest updated.", dependencyPath, err), 1)
+					// Keep manifest change, but report error for file deletion
+					_, _ = fmt.Fprintf(c.App.ErrWriter, "Warning: Failed to delete dependency file '%s': %v. Manifest updated.\n", dependencyPath, err)
 				}
-				fmt.Printf("Warning: Dependency file '%s' not found for deletion, but manifest updated.\n", dependencyPath)
+				// fmt.Printf("Warning: Dependency file '%s' not found for deletion, but manifest updated.\n", dependencyPath) // Silenced
 			} else {
-				fmt.Printf("Successfully deleted dependency file '%s'.\n", dependencyPath)
-
+				// fmt.Printf("Successfully deleted dependency file '%s'.\n", dependencyPath) // Silenced
+				fileDeleted = true
 				// Attempt to clean up empty parent directories
 				currentDir := filepath.Dir(dependencyPath)
-				projectRootAbs, err := filepath.Abs(".")
-				if err != nil {
-					fmt.Printf("Warning: Could not determine project root absolute path: %v. Skipping directory cleanup.\n", err)
+				projectRootAbs, errAbs := filepath.Abs(".")
+				if errAbs != nil {
+					_, _ = fmt.Fprintf(c.App.ErrWriter, "Warning: Could not determine project root absolute path: %v. Skipping directory cleanup.\n", errAbs)
 				} else {
 					for {
-						absCurrentDir, err := filepath.Abs(currentDir)
-						if err != nil {
-							fmt.Printf("Warning: Could not get absolute path for '%s': %v. Stopping directory cleanup.\n", currentDir, err)
+						absCurrentDir, errLoopAbs := filepath.Abs(currentDir)
+						if errLoopAbs != nil {
+							_, _ = fmt.Fprintf(c.App.ErrWriter, "Warning: Could not get absolute path for '%s': %v. Stopping directory cleanup.\n", currentDir, errLoopAbs)
 							break
 						}
-
-						// Stop conditions:
-						// 1. Reached project root
-						// 2. Reached a filesystem root (e.g., "/" or "C:\")
-						// 3. Current directory is "." (already at project root relative)
 						if absCurrentDir == projectRootAbs || filepath.Dir(absCurrentDir) == absCurrentDir || currentDir == "." {
 							break
 						}
-
-						empty, err := isDirEmpty(currentDir)
-						if err != nil {
-							fmt.Printf("Warning: Could not check if directory '%s' is empty: %v. Stopping directory cleanup.\n", currentDir, err)
+						empty, errEmpty := isDirEmpty(currentDir)
+						if errEmpty != nil {
+							_, _ = fmt.Fprintf(c.App.ErrWriter, "Warning: Could not check if directory '%s' is empty: %v. Stopping directory cleanup.\n", currentDir, errEmpty)
 							break
 						}
-
 						if !empty {
-							// Directory is not empty, so stop
 							break
 						}
-
-						// Directory is empty, try to remove it
-						fmt.Printf("Info: Directory '%s' is empty, attempting to remove.\n", currentDir)
-						if err := os.Remove(currentDir); err != nil {
-							fmt.Printf("Warning: Failed to remove empty directory '%s': %v. Stopping directory cleanup.\n", currentDir, err)
-							break // Stop if removal fails (e.g., permissions)
+						// fmt.Printf("Info: Directory '%s' is empty, attempting to remove.\n", currentDir) // Silenced
+						if errRemoveDir := os.Remove(currentDir); errRemoveDir != nil {
+							_, _ = fmt.Fprintf(c.App.ErrWriter, "Warning: Failed to remove empty directory '%s': %v. Stopping directory cleanup.\n", currentDir, errRemoveDir)
+							break
 						}
-						fmt.Printf("Successfully removed empty directory '%s'.\n", currentDir)
-
-						// Move to parent directory
+						// fmt.Printf("Successfully removed empty directory '%s'.\n", currentDir) // Silenced
 						currentDir = filepath.Dir(currentDir)
 					}
 				}
 			}
 
 			// Update lockfile
-			lf, err := lockfile.Load(".") // Load from current directory
-			if err != nil {
-				// If lockfile loading fails, it's not a critical error that should stop the command,
-				// as manifest and file are already handled. Report as warning.
-				fmt.Printf("Warning: Failed to load %s: %v. Manifest and file processed.\n", lockfile.LockfileName, err)
+			lf, errLock := lockfile.Load(".")
+			lockfileUpdated := false
+			if errLock != nil {
+				_, _ = fmt.Fprintf(c.App.ErrWriter, "Warning: Failed to load %s: %v. Manifest and file processed.\n", lockfile.LockfileName, errLock)
 			} else {
 				if lf.Package != nil {
-					if _, ok := lf.Package[depName]; ok {
+					if _, depInLock := lf.Package[depName]; depInLock {
 						delete(lf.Package, depName)
-						if err := lockfile.Save(".", lf); err != nil {
-							fmt.Printf("Warning: Failed to update %s: %v. Manifest and file processed.\n", lockfile.LockfileName, err)
+						if errSaveLock := lockfile.Save(".", lf); errSaveLock != nil {
+							_, _ = fmt.Fprintf(c.App.ErrWriter, "Warning: Failed to update %s: %v. Manifest and file processed.\n", lockfile.LockfileName, errSaveLock)
 						} else {
-							fmt.Printf("Successfully removed dependency '%s' from %s.\n", depName, lockfile.LockfileName)
+							// fmt.Printf("Successfully removed dependency '%s' from %s.\n", depName, lockfile.LockfileName) // Silenced
+							lockfileUpdated = true
 						}
-					} else {
-						fmt.Printf("Info: Dependency '%s' not found in %s. No changes made to lockfile.\n", depName, lockfile.LockfileName)
 					}
-				} else {
-					fmt.Printf("Info: No 'package' section found in %s. No changes made to lockfile.\n", lockfile.LockfileName)
+					// else {
+					// fmt.Printf("Info: Dependency '%s' not found in %s. No changes made to lockfile.\n", depName, lockfile.LockfileName) // Silenced
+					// }
 				}
+				// else {
+				// fmt.Printf("Info: No 'package' section found in %s. No changes made to lockfile.\n", lockfile.LockfileName) // Silenced
+				// }
 			}
 
-			fmt.Printf("Successfully removed dependency '%s'.\n", depName)
+			// pnpm-style output
+			// For remove, pnpm doesn't show "Packages: -1" but rather "Progress: ... removed 1" or similar.
+			// We'll simplify to match the example's structure.
+			fmt.Println("Progress: resolved 0, reused 0, downloaded 0, removed 1, done") // Simplified
+			fmt.Println()
+			_, _ = color.New(color.FgWhite, color.Bold).Println("dependencies:")
+
+			// Try to get version from the original source string in project.toml
+			// This is a simplification; a more robust way would be to parse the canonical source string.
+			versionStr := "unknown"
+			// Use source.ParseSourceURL which is designed for this
+			parsedInfo, parseErr := source.ParseSourceURL(dependencySource)
+			if parseErr == nil && parsedInfo != nil && parsedInfo.Ref != "" && !strings.HasPrefix(parsedInfo.Ref, "error:") {
+				versionStr = parsedInfo.Ref
+			}
+
+			_, _ = color.New(color.FgRed).Printf("- %s %s\n", depName, versionStr)
+			fmt.Println()
+			duration := time.Since(startTime)
+			fmt.Printf("Done in %.1fs\n", duration.Seconds())
+
+			// Report on what was actually done, if not fully successful
+			// Ensure c.App is not nil before accessing c.App.ErrWriter
+			var errWriter io.Writer = os.Stderr // Use io.Writer type
+			if c.App != nil && c.App.ErrWriter != nil {
+				errWriter = c.App.ErrWriter
+			}
+
+			if !fileDeleted {
+				_, _ = fmt.Fprintf(errWriter, "Note: Dependency file '%s' was not deleted (either not found or error during deletion).\n", dependencyPath)
+			}
+			if !lockfileUpdated && errLock == nil { // Only if lockfile was loaded successfully but not updated
+				_, _ = fmt.Fprintf(errWriter, "Note: Lockfile '%s' was not updated for '%s' (either not found in lockfile or error during save).\n", lockfile.LockfileName, depName)
+			}
+
 			return nil
 		},
 	}

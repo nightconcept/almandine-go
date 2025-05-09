@@ -526,3 +526,71 @@
     -   [ ] Adjust existing tests in `internal/cli/list/list_test.go` to expect the new pnpm-like format (initially without asserting exact color codes, as this can be brittle). (File to be created in Task 9.1)
     -   [x] Consider adding a simple manual verification step for color output. (Decision: Manual verification will be needed)
     -   [ ] Add new test cases if necessary to cover different scenarios with the new format (e.g., project with name/version, project without). (To be done in Task 9.2)
+## Milestone 11: `add` and `remove` Command Output Enhancement (pnpm style) (2025-05-08)
+
+**Goal:** Update the `almd add` and `almd remove` command outputs to be more visually similar to `pnpm`, including terminal colors using `fatih/color`.
+
+-   [x] **Task 11.1: Update `add` command output**
+    -   [x] Modify `internal/cli/add/add.go` to print output similar to `pnpm add`.
+    -   [x] Use green color for added dependency information.
+    -   [x] Include a "Done in Xs" message.
+-   [x] **Task 11.2: Update `remove` command output**
+    -   [x] Modify `internal/cli/remove/remove.go` to print output similar to `pnpm remove`.
+    -   [x] Use red color for removed dependency information.
+    -   [x] Include a "Done in Xs" message.
+-   [x] **Task 11.3: Add `fatih/color` dependency if not already present**
+    -   [x] Ensure `github.com/fatih/color` is in `go.mod`. (Already added by list command changes)
+-   [ ] **Task 11.4: Manual Verification**
+    -   [ ] Run `almd add <url>` and verify the output matches the pnpm style.
+    -   [ ] Run `almd remove <dep_name>` and verify the output matches the pnpm style.
+## Milestone 12: `self update` Command Implementation
+
+**Goal:** Implement the `almd self update` command to allow the Almandine tool to update itself.
+
+-   [ ] **Task 12.1: `urfave/cli` Command Setup for `self update`**
+    -   [ ] Define the `self` command structure (`cli.Command`) in a new file (e.g., `internal/cli/self/self.go`).
+    -   [ ] Define the `update` subcommand within the `self` command.
+    -   [ ] Add the `self` command (with its `update` subcommand) to the `urfave/cli` App in `cmd/almd/main.go`.
+    -   [ ] Define flags for `almd self update`: `--yes`/`-y` (bool), `--check` (bool), `--source <url>` (string), `--verbose` (bool).
+    -   [ ] Manual Verification: Run `almd self update --help` and confirm the command, subcommand, and flags are listed correctly.
+
+-   [ ] **Task 12.2: Add Self-Update Library**
+    -   [ ] Add `github.com/creativeprojects/go-selfupdate` as a project dependency (`go get github.com/creativeprojects/go-selfupdate`).
+    -   [ ] Manual Verification: `go.mod` and `go.sum` are updated.
+
+-   [ ] **Task 12.3: Implement Version Embedding**
+    -   [ ] Ensure the application version is embedded at build time. This typically involves:
+        -   [ ] Defining a `var version string` in the `main` package (`cmd/almd/main.go`).
+        -   [ ] Setting this variable during the build using ldflags: `go build -ldflags="-X main.version=vX.Y.Z" ./cmd/almd`.
+        -   [ ] The `cli.App` `Version` field should use this variable.
+    -   [ ] Manual Verification: Build the binary with a version, run `almd --version`, and confirm the embedded version is printed.
+
+-   [ ] **Task 12.4: Implement Core `self update` Logic**
+    -   [ ] In the `update` subcommand's `Action`:
+        -   [ ] Retrieve the current application version (embedded in Task 12.3).
+        -   [ ] Use `github.com/creativeprojects/go-selfupdate` to:
+            -   [ ] Configure the updater (e.g., for GitHub releases, using `selfupdate.NewGitHubUpdater`).
+            -   [ ] If `--check` flag is used, detect the latest version and inform the user if an update is available, then exit.
+            -   [ ] Detect the latest available release version.
+            -   [ ] Compare with the current version. If no newer version, inform the user and exit.
+            -   [ ] If a newer version is available, prompt for confirmation unless `--yes` is used.
+            -   [ ] Perform the update (download, verify, replace).
+        -   [ ] Handle errors gracefully (e.g., network issues, no new version, update failure).
+        -   [ ] Provide clear output messages throughout the process.
+    -   [ ] Manual Verification:
+        -   [ ] Test `--check` flag when an update is available and when not.
+        -   [ ] Test update process: with and without `--yes`.
+        -   [ ] Test with no new version available.
+        -   [ ] Simulate network error if possible to check error handling.
+
+-   [ ] **Task 12.5: Testing for `self update`**
+    -   [ ] **Note:** Fully automated E2E testing for self-update is complex as it involves replacing the running binary. Initial testing will likely be manual or involve carefully crafted integration tests that mock parts of the update process.
+    -   [ ] Define manual test scenarios:
+        -   [ ] Update from an older version to a newer version.
+        -   [ ] Attempt update when already on the latest version.
+        -   [ ] Use `--check` flag.
+        -   [ ] Use `--yes` flag.
+    -   [ ] Consider creating a simple integration test that:
+        -   [ ] Mocks the `github.com/creativeprojects/go-selfupdate` library's interactions (e.g., API calls, download).
+        -   [ ] Verifies the command logic (flag parsing, conditional execution based on mocked updater responses).
+        -   [ ] This would not test the actual binary replacement but would cover the command's flow.

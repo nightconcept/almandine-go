@@ -143,6 +143,27 @@ Almandine (`almd` as the CLI command) is a lightweight package manager for Go pr
         -   `--json`: Optional flag (`cli.BoolFlag`) to output the dependency list in JSON format, suitable for machine parsing.
         -   `--porcelain`: Optional flag (`cli.BoolFlag`) for a simple, scriptable output format (e.g., `name@version_hash path`).
 
+-   **`self` command:**
+    -   **Goal:** Provides commands related to the Almandine tool itself, such as self-updating.
+    -   **Subcommands:**
+        -   **`update` subcommand:**
+            -   **Goal:** Allows the `almd` tool to update itself to the latest version from its release source (initially GitHub).
+            -   **Full Command:** `almd self update`
+            -   **Implementation:** To be implemented as a `urfave/cli` subcommand. It will utilize a library like `github.com/creativeprojects/go-selfupdate` (which supports various sources including GitHub) or a similar robust self-update library.
+            -   **Functionality:**
+                -   Checks the configured release source (e.g., the official `almandine-go` GitHub repository) for the latest release.
+                -   Compares the latest available version with the version of the currently running `almd` executable. The current version of `almd` **must** be embedded into the binary at build time (e.g., using Go's `-ldflags "-X main.version=vX.Y.Z"`).
+                -   If a newer version is found, it can prompt the user for confirmation before proceeding or update directly if a force/yes flag is used.
+                -   Downloads the binary asset appropriate for the user's operating system and architecture from the release source.
+                -   Verifies the integrity of the downloaded binary (e.g., via checksums if provided by the release).
+                -   Safely replaces the current `almd` executable with the downloaded version.
+                -   Provides clear feedback to the user regarding the update process (e.g., "Checking for updates...", "Updating to vX.Y.Z...", "Update successful.", "Almandine is already up-to-date.").
+            -   **Arguments & Flags (`urfave/cli` for `almd self update`):**
+                -   `--yes` / `-y` (optional `cli.BoolFlag`): Skips confirmation and proceeds with the update automatically if a new version is found.
+                -   `--check` (optional `cli.BoolFlag`): Only checks for available updates and reports the status without performing the update.
+                -   `--source <url>` (optional `cli.StringFlag`): Potentially allows specifying an alternative update source URL (though typically this would be hardcoded or configured for the official build).
+                -   `--verbose` (optional `cli.BoolFlag`): Enables detailed output during the update check and process.
+
 
 ## 3. Almandine Tool Project Structure (Go Implementation)
 

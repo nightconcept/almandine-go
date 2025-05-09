@@ -10,7 +10,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/fatih/color"
 	"github.com/nightconcept/almandine-go/internal/core/config"
 	"github.com/nightconcept/almandine-go/internal/core/downloader"
 	"github.com/nightconcept/almandine-go/internal/core/hasher"
@@ -53,6 +55,7 @@ var AddCommand = &cli.Command{
 		},
 	},
 	Action: func(cCtx *cli.Context) (err error) { // MODIFIED: Named return error
+		startTime := time.Now()
 		sourceURLInput := ""
 		if cCtx.NArg() > 0 {
 			sourceURLInput = cCtx.Args().Get(0) // .First() is equivalent but .Get(0) is more explicit
@@ -65,13 +68,8 @@ var AddCommand = &cli.Command{
 		customName := cCtx.String("name")
 		verbose := cCtx.Bool("verbose")
 
-		if verbose {
-			fmt.Printf("Attempting to add dependency:\n")
-			fmt.Printf("  Source URL Input: %s\n", sourceURLInput)
-			fmt.Printf("  Target Directory: %s\n", targetDir)
-			fmt.Printf("  Custom Name (from -n flag): '[%s]'\n", customName)
-			fmt.Printf("  Verbose Output: %t\n", verbose)
-		}
+		// Silence default verbose output, will be replaced by pnpm style
+		_ = verbose // Keep verbose for potential future use or more detailed debugging
 
 		// Task 2.2: Parse the source URL
 		var parsedInfo *source.ParsedSourceInfo
@@ -322,8 +320,26 @@ var AddCommand = &cli.Command{
 			fmt.Printf("Successfully updated %s for dependency '%s'.\n", lockfile.LockfileName, dependencyNameInManifest)
 		}
 
-		fmt.Printf("Successfully added '%s' from '%s' to '%s'.\nUpdated %s and %s.\n", // Simplified success message
-			dependencyNameInManifest, sourceURLInput, fullPath, config.ProjectTomlName, lockfile.LockfileName)
+		// pnpm-style output
+		_, _ = color.New(color.FgWhite).Println("Packages: +1")
+		_, _ = color.New(color.FgGreen).Println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++") // Simple progress bar
+		fmt.Println("Progress: resolved 1, downloaded 1, added 1, done")
+		fmt.Println()
+		_, _ = color.New(color.FgWhite, color.Bold).Println("dependencies:")
+		dependencyVersionStr := parsedInfo.Ref
+		if dependencyVersionStr == "" || strings.HasPrefix(dependencyVersionStr, "error:") {
+			// Fallback if ref is not available or an error
+			parts := strings.Split(parsedInfo.CanonicalURL, "@")
+			if len(parts) > 1 {
+				dependencyVersionStr = parts[len(parts)-1]
+			} else {
+				dependencyVersionStr = "latest" // Or some other placeholder
+			}
+		}
+		_, _ = color.New(color.FgGreen).Printf("+ %s %s\n", dependencyNameInManifest, dependencyVersionStr)
+		fmt.Println()
+		duration := time.Since(startTime)
+		fmt.Printf("Done in %.1fs\n", duration.Seconds())
 
 		return nil // err is nil, so defer func() will not trigger cleanup
 	},
